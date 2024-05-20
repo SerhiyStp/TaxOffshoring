@@ -1,0 +1,11 @@
+*.vfproj
+*.u2d
+*.sln
+*.txt
+*.tex
+*.csv
+*.dat
+*.ini
+tags
+x64/
+.vs/
