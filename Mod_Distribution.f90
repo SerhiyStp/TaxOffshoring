@@ -97,7 +97,7 @@ contains
                     !do acc=1,na
                         do sc=1,ns
                             do ac=1,na
-                                call basefun(grida(1:na,jj),na,afun(tyc,sc,ac,jc-1,jj),vals,inds)
+                                call basefun(grida(1:na),na,afun(tyc,sc,ac,jc-1,jj),vals,inds)
                                 !Phi(tyc,scc,acc,jc)=Phi(tyc,scc,acc,jc)+Phi(tyc,sc,ac,jc-1)*TT(tyc,scc,acc,sc,ac)
                                 TT1 = vals(1)*pi(sc,scc)
                                 TT2 = vals(2)*pi(sc,scc)
@@ -154,9 +154,9 @@ contains
                     do sc=1,ns
                         !abar(jc)=abar(jc)+ sum( Phi(tyc,sc,1:na,jc,jj)*afun(tyc,sc,1:na,jc,jj), mask=afun(tyc,sc,1:na,jc,jj) < a_cutoff(jj) ) 
                         abar(jc)=abar(jc)+ sum( Phi(tyc,sc,1:na,jc,jj)*afun(tyc,sc,1:na,jc,jj) )
-                        astartbar(jc)=astartbar(jc)+ sum( Phi(tyc,sc,1:na,jc,jj)*grida(1:na,jj) )
+                        astartbar(jc)=astartbar(jc)+ sum( Phi(tyc,sc,1:na,jc,jj)*grida(1:na) )
                         abartype(jc,tyc,jj)=abartype(jc,tyc,jj)+ sum( Phi(tyc,sc,1:na,jc,jj)*afun(tyc,sc,1:na,jc,jj) )/measty(tyc)/psi_prob(jj) 			
-                        astartbartype(jc,tyc,jj)=astartbartype(jc,tyc,jj)+ sum( Phi(tyc,sc,1:na,jc,jj)*grida(1:na,jj) )/measty(tyc)/psi_prob(jj)
+                        astartbartype(jc,tyc,jj)=astartbartype(jc,tyc,jj)+ sum( Phi(tyc,sc,1:na,jc,jj)*grida(1:na) )/measty(tyc)/psi_prob(jj)
                         
                         if (Phi(tyc,sc,na,jc,jj) > 1d-9) then 
                             print *, Phi(tyc,sc,na,jc,jj)
@@ -308,7 +308,7 @@ contains
                                 earnl=0.0 
                             end if
 
-                            acur = grida(ac,jj)
+                            acur = grida(ac)
                             if (acur < a_cutoff(jj)) then
                                 atilde = acur*qd 
                             else

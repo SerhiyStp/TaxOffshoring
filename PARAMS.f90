@@ -16,13 +16,11 @@ MODULE PARAMS
     real(8) :: Share_Offshoring, share_off_dist(5), wealth_obs_dist(6), wealth_tot_dist(6),income_dist(6), lab_income_dist(6)
     real(prec):: qd, qw, qwd
     real(prec),parameter:: psi_offshore=2.5d0 !1.5d0 !0.5d0
-    integer,parameter:: n_ofsh=3
+    integer,parameter:: n_ofsh=1 !3
     !real(prec),parameter:: psi_vals(n_ofsh)=[psi_offshore-0.5d0, psi_offshore, psi_offshore+3.5d0]
     real(prec) :: psi_vals(n_ofsh)
     real(8) :: psi_val_top, psi_val_mid
     real(8) :: p_out_h
-    !real(prec),parameter:: psi_vals(n_ofsh)=[psi_offshore-1.0d0, psi_offshore, psi_offshore+1.5d0]
-    !real(prec),parameter:: psi_prob(n_ofsh)=[1.0d0/3.0d0, 1.0d0/3.0d0, 1.0d0/3.0d0]
     real(prec) :: psi_prob(n_ofsh) !=[1.0d0/3.0d0, 1.0d0/3.0d0, 1.0d0/3.0d0]
     real(prec),parameter:: frac_ofsh=0.4d0
 
@@ -33,15 +31,24 @@ MODULE PARAMS
     !integer,parameter:: ns=7, na=501, nl=66, nty=2, maxit=10000  ! Size of grids
     !integer,parameter:: ns=8, na=501, nl=66, nty=1, maxit=10000  ! Size of grids
     !integer,parameter:: ns=8, na=3001, nl=1, nty=1, maxit=10000  ! Size of grids
-    integer,parameter:: ns=8, na=401, nl=1, nty=1, maxit=10000  ! Size of grids
+    integer, parameter :: ns=1 !9 ! Persistent wage shocks - old
+    integer, parameter :: nz=1 !9 ! Persistent wage shocks
+    integer, parameter :: na=1001 !201 !401 ! Assets
+    integer, parameter :: nl=1 !
+    integer, parameter :: nty=1
+    integer, parameter :: maxit=10000
+    integer, parameter :: nxi=1 !3  ! Temporary wage shocks
+
     integer:: na0,na1,ntauk
 
     real(8) :: DistX(ns), DistXW(ns)
 
 
     ! Population
-    integer,parameter:: jr=46
-    integer,parameter:: J =81
+    integer,parameter:: jr = 46
+    integer,parameter:: J = 81
+    integer,parameter:: Tret = J-Jr+1
+    integer,parameter:: Twork = Jr-1
     real(prec),parameter:: nn=0.011
 
 
@@ -91,15 +98,42 @@ MODULE PARAMS
     ! Value of the borrowing constraint
     real(prec),parameter:: blimit=0.0
 
-    ! Shocks and transition probabilities
-    real(prec),dimension(ns,ns)::pi
+    ! Wage shocks and transition probabilities
+    real(8) :: sig_z = 0.02d0
+    real(8) :: rho_z = 0.8d0
+    real(8) :: sig_xi = 0.01d0
+    real(prec),dimension(nz,nz)::pi
+    real(8) :: eta(nz)
+    real(8) :: pi_xi(nxi)
+    real(8) :: xi(nxi)
     real(prec)::avgeta
-    real(prec),dimension(ns)::pistat,eta,pini
+    real(prec),dimension(nz)::pistat, pini
+    
+    
+    ! Retirement
+    real(8) :: b_ret(nz)
+
     
     real(8)::pstat(1,ns)
+    
+    ! Heterogeneous returns
+    real(8), parameter :: omega1 = 0.072d0
+    real(8), parameter :: omega2 = 0.20d0
+    real(8), parameter :: gamma_omega = 0.30d0
+    real(8), parameter :: abar_omega = 0.0d0
+    real(8), parameter :: omegabar = 0.4d0
+    real(8), parameter :: rF = 0.03d0 !0.01d0
+    real(8), parameter :: rR = 0.09d0 !0.06d0
+    real(8), parameter :: sig_kappa = 0.05d0
+    integer, parameter :: nkappa = 1 !3 ! Rate of return temporary shocks
+    real(8) :: Kappas(nkappa)
+    real(8) :: pi_kappa(nkappa)
+    integer, parameter :: ntheta=1 !2 ! Rate of return persistent types    
+    real(8) :: thetas(ntheta)  
+    real(8) :: pi_theta(ntheta,ntheta)    
+    
 
     ! Variables needed for the Tauchen routine
-
     integer :: NVAR,nlag=1
     integer :: nval(10)
     integer :: nsm
@@ -113,11 +147,8 @@ MODULE PARAMS
     real(prec),allocatable :: mprobs(:,:)      ! Transition probabilities
 
 
-    ! Points in grid of assets and labor supply
-    real(prec),dimension(na,n_ofsh)::grida
-    real(prec),dimension(na-2)::grida_tmp1
-    real(prec),dimension(na)::grida_tmp2
-    !real(prec),dimension(nl)::gridl
+    ! Points in grid of assets 
+    real(prec),dimension(na)::grida
 
 
     ! Demographic Parameters
@@ -171,7 +202,8 @@ MODULE PARAMS
 
     ! Household value and policy functions
     !real(prec),dimension(nty,ns,na,J,n_ofsh)::afun
-    real(prec),dimension(nty,ns,na,J,n_ofsh)::Vfun,cfun,lfun,vpfun,afun
+    !real(prec),dimension(nty,ns,na,J,n_ofsh)::Vfun,cfun,lfun,vpfun,afun
+    
 
 
     ! Asset distribution
@@ -189,6 +221,7 @@ MODULE PARAMS
 
     ! Prices of capital and labor; labor supply and capital stock, and other 
     real(prec):: r,w,N,LabS,K,As,Astart,Y,C,Tr,exdem,Totinctax,hours,Transagg,stdle,stdleini
+    real(8) :: rbar
 
 
     ! Social security taxes and benefits
@@ -217,6 +250,73 @@ MODULE PARAMS
     !===========================================================================
 
 CONTAINS
+    
+    function D_after_tax_income(y) result(res)
+        real(8), intent(in) :: y
+        real(8) :: res
+        
+        if (y >= yb_cutoff) then
+            res = 1d0-tau_max    
+        else
+            res = theta0*(1d0-theta1)*y**(-theta1)
+        end if
+        
+    end function D_after_tax_income
+    
+    
+    elemental function after_tax_income(y) result(res)
+        real(8), intent(in) :: y
+        real(8) :: res
+        
+        res = theta0*min(yb_cutoff,y)**(1d0-theta1) + (1d0-tau_max)*max(0d0, y-yb_cutoff)
+    
+    end function after_tax_income
+    
+    function rfunc(a, theta, kappa)
+        real(8), intent(in) :: a
+        real(8), intent(in) :: theta
+        real(8), intent(in) :: kappa
+        real(8) :: om
+        real(8) :: rfunc
+        
+        om = Omega(a,theta)
+        rfunc = rbar + rF*(1.0d0-om) + rR*kappa*om
+        
+    end function rfunc
+    
+    function Da_rfunc(a, theta, kappa)
+        real(8), intent(in) :: a
+        real(8), intent(in) :: theta
+        real(8), intent(in) :: kappa
+        real(8) :: Da_om
+        real(8) :: Da_rfunc
+        
+        Da_om = DaOmega(a, theta)
+        Da_rfunc = (rR*kappa - rF)*Da_om
+    end function Da_rfunc
+    
+    function Omega(a, theta)
+        real(8), intent(in) :: a
+        real(8), intent(in) :: theta
+        real(8) :: Omega
+        
+        Omega = theta*(omegabar + min( omega1*( max(a - abar_omega, 0.0d0) )**gamma_omega, omega2 ) )
+    end function Omega
+    
+    function DaOmega(a, theta)
+        real(8), intent(in) :: a
+        real(8), intent(in) :: theta
+        real(8) :: DaOmega
+        real(8) :: tmp
+        
+        tmp = omega1*( max(a - abar_omega, 0.0d0) )**gamma_omega
+        if (a <= abar_omega .or. tmp >= omega2) then
+            DaOmega = 0d0
+        else
+            DaOmega = theta*omega1*gamma_omega*(a - abar_omega)**(gamma_omega-1.0d0)
+        end if
+        
+    end function DaOmega
 
     !==========================================================================
     function U(c,l)

@@ -2,6 +2,7 @@ module CK_routines
     
     implicit none
     real(8):: newton_res(3)
+    
 contains
     
     subroutine GRID
@@ -19,18 +20,14 @@ contains
         !real(prec),parameter::scale=505000.0,curv=1.1 !2.5
         !real(prec),parameter::scale=400000.0,curv=1.1 !2.5
         !real(prec),parameter::scale=6000.0,curv=1.1 !2.5
-        real(prec),parameter::scale=40000.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=40000.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=2000.0,curv=1.2
+        real(prec),parameter::scale=150.0,curv=1.0 !2
         real(prec)::step
 
-        grida_tmp1(1)=blimit
-        grida_tmp2(1)=blimit
-
-        do ac=2,na-2
-            grida_tmp1(ac)=grida_tmp1(1)+scale*((ac-1.0)/((na-2.0)-1.0))**curv
-        end do
-
+        grida(1)=blimit
         do ac=2,na
-            grida_tmp2(ac)=grida_tmp1(1)+scale*((ac-1.0)/(na-1.0))**curv
+            grida(ac)=grida(1)+scale*((ac-1.0)/(na-1.0))**curv
         end do
 
     end subroutine GRID
@@ -262,6 +259,7 @@ contains
         ! use toolbox_kk
 
         !use MSIMSL
+        use TAUCHEN_mod, only: tauchen_pareto
 
         implicit none
 
@@ -292,6 +290,10 @@ contains
         real(8)::tmp, sigmaeps2_test
         real(8)::p0(1,ns), ptmp(ns,ns)
         real(8)::dist
+        
+        
+        real(8) :: m_tauch, pareto_cutoff
+        real(8) :: alpha_pareto        
 
 
         yb_cutoff = ( theta0*(1.0d0-theta1)/(1.0d0-tau_max) )**(1d0/theta1)
@@ -361,131 +363,28 @@ contains
         !
         !!print *, 'test'
         !eta = [0.1354d0, 0.3680d0, 1.0d0, 2.7176d0, 7.3853d0, 19.7204d0, 654.0124d0]
-
-        !call rouwenhorst(rho,sigmaeps,pi_small,eta_small,pistat_small)
-        !sigmaeps2_test = sigmaeps**2d0*(1.0d0-rho**2.0d0)
-        !call rouwenhorst_kk(rho,sigmaeps2_test,pi_small_test,eta_small_test)
-        !
-        !do i = 1, 5
-        !print *, sum(pi_small(i,:))
-        !end do
-        !
-        !p_i6=0.000440d0
-        !!p_i6=0d0
-        !p_66=0.97d0
-        !!p_66=0d0
-        !p_67=0.027734d0
-        !!p_67=0d0
-        !p_77=0.711254d0
-        !!p_77=0.10d0
-        !!p_77 = 0.0d0
-        !e6=19.720354d0
-        !!e6=25d0
-        !e7=654.012359d0
-        !!e7=665.0d0
-        !
-        !pi(1:5,1:5)=pi_small*(1d0-p_i6)
-        !pi(1:5,6)=p_i6
-        !!pi(1:5,6)=0d0
-        !!pi(1:5,7)=0d0
-        !pi(6,:)=[0d0, 0d0, 1d0-p_66-p_67, 0d0, 0d0, p_66, p_67]
-        !!pi(6,3)=0d0
-        !!pi(6,1)=1d0-p_66-p_67
-        !pi(7,1:5)=0d0
-        !!pi(7,6)=1d0-p_77
-        !!pi(7,6)=0d0
-        !pi(7,3)=1d0-p_77
-        !!pi(7,1)=1d0-p_77
-        !pi(7,7)=p_77
-        !eta(1:5)=eta_small
-        !eta(6)=log(e6)
-        !eta(7)=log(e7)
-        !
-        !pi(1,2)=pi(1,2)+p_i6
-        !pi(2,3)=pi(2,3)+p_i6
-        !pi(3,4)=pi(3,4)+p_i6
-        !pi(4,5)=pi(4,5)+p_i6
-        !pi(5,6)=pi(5,6)+p_i6
-        !
-        !! Experiment 1:
-        !pi(1,:) = [0.969909d0, 0.029317d0, 0.000332d0, 0.000002d0, 0d0, 0.00044d0, 0d0]
-        !pi(2,:) = [0.007329d0, 0.970075d0, 0.021989d0, 0.000166d0, 0d0,	0.00044d0, 0d0]
-        !pi(3,:) = [0.000055d0, 0.014659d0, 0.97013d0, 0.014659d0, 0.000055d0, 0.00044d0, 0d0]
-        !pi(4,:) = [0d0,	0.000166d0,	0.021989d0,	0.970075d0,	0.007329d0,	0.00044d0, 0d0]
-        !pi(5,:) = [0d0,	0.000002d0,	0.000332d0,	0.029317d0,	0.969909d0,	0.00044d0, 0d0]
-        !pi(6,:) = [0d0,	0d0, 0.002266d0, 0d0, 0d0, 0.97d0, 0.027734d0]
-        !pi(7,:) = [0d0,	0d0, 0.288746d0, 0d0, 0d0, 0d0,	0.711254d0]
-
-
-        ! Experiment 6:
-        !pi(1,:) = [0.970349d0, 0.029317d0, 0.000332d0, 0.000002d0, 0d0, 0d0, 0d0]
-        !pi(2,:) = [0.007329d0, 0.970076d0, 0.022429d0, 0.000166d0, 0d0, 0d0, 0d0]
-        !pi(3,:) = [0.000055d0, 0.014659d0, 0.969692d0, 0.015099d0, 0.000055d0, 0.00044d0, 0d0]
-        !pi(4,:) = [0d0, 0.000166d0, 0.021989d0, 0.969636d0, 0.007769d0, 0.00044d0, 0d0]
-        !pi(5,:) = [0d0, 0.000002d0, 0.000332d0, 0.029317d0, 0.969909d0, 0.00044d0, 0d0]
-        !pi(6,:) = [0d0, 0d0, 0.002266d0, 0d0, 0d0, 0.97d0, 0.027734d0]
-        !pi(7,:) = [0.262496364d0, 0d0, 0d0, 0d0, 0d0, 0d0, 0.737503636d0]
-
-        !pi(1,:) = [0.874d0, 0.119d0, 0.004d0, 0d0, 0d0, 0d0, 0.002d0, 0d0]
-        !pi(2,:) = [0.060d0, 0.878d0, 0.060d0, 0d0, 0d0, 0d0, 0.002d0, 0d0]
-        !pi(3,:) = [0.004d0, 0.119d0, 0.874d0, 0d0, 0d0, 0d0, 0.002d0, 0d0]
-        !pi(4,:) = [0d0, 0d0, 0d0, 0.874d0, 0.119d0, 0.004d0, 0.002d0, 0d0]
-        !pi(5,:) = [0d0, 0d0, 0d0, 0.060d0, 0.878d0, 0.060d0, 0.002d0, 0d0]
-        !pi(6,:) = [0d0, 0d0, 0d0, 0.004d0, 0.119d0, 0.874d0, 0.002d0, 0d0]
-        !pi(7,:) = [0.021d0, 0.021d0, 0.021d0, 0.021d0, 0.021d0, 0.021d0, 0.850d0, 0.021d0] 
-        !pi(8,:) = [0d0, 0d0, 0d0, 0d0, 0d0, 0d0, 0.242d0, 0.758d0]
-
-        !pi(1,:) = [0.972524097904006d0, 0.026581795318096d0, 0.000210932148717d0, 0.000051171203920d0, 0.000051171203920d0, 0.000051171203920d0, 0.000478489813503d0, 0.000051171203920d0]
-        !pi(2,:) = [0.013412408617763d0, 0.972492485599940d0, 0.013412408617763d0, 0.000051171204859d0, 0.000051171204859d0, 0.000051171204859d0, 0.000478012345098d0, 0.000051171204859d0]
-        !pi(3,:) = [0.000210932148717d0, 0.026581795318096d0, 0.972524097904005d0, 0.000051171203920d0, 0.000051171203920d0, 0.000051171203920d0, 0.000478489813503d0, 0.000051171203920d0]
-        !pi(4,:) = [0.000051171203920d0, 0.000051171203920d0, 0.000051171203920d0, 0.972524097904005d0, 0.026581795318096d0, 0.000210932148717d0, 0.000478489813503d0, 0.000051171203920d0]
-        !pi(5,:) = [0.000051171204859d0, 0.000051171204859d0, 0.000051171204859d0, 0.013412408617763d0, 0.972492485599940d0, 0.013412408617763d0, 0.000478012345098d0, 0.000051171204859d0]
-        !pi(6,:) = [0.000051171203920d0, 0.000051171203920d0, 0.000051171203920d0, 0.000210932148717d0, 0.026581795318096d0, 0.972524097904005d0, 0.000478489813503d0, 0.000051171203920d0]
-        !pi(7,:) = [0.004676283318376d0, 0.004287910689423d0, 0.004676283318376d0, 0.004676283318376d0, 0.004287910689423d0, 0.004676283318376d0, 0.967646330592403d0, 0.005072714755248d0] 
-        !pi(8,:) = [0.000051009705600d0, 0.000051009705600d0, 0.000051009705600d0, 0.000051009705600d0, 0.000051009705600d0, 0.000051009705600d0, 0.057561731216636d0, 0.942132210549766d0]
-
         
-        pi(1,:) = [0.9729d0,    0.0265d0,     0.0002d0,        0.0d0,         0.0d0,         0.0d0,       0.0004d0,      0.0d0]
-        pi(2,:) = [0.0134d0,    0.9729d0,     0.0134d0,        0.0d0,         0.0d0,         0.0d0,       0.0004d0,      0.0d0]
-        pi(3,:) = [0.0002d0,    0.0265d0,     0.9729d0,        0.0d0,         0.0d0,         0.0d0,       0.0004d0,      0.0d0]
-        pi(4,:) = [0.0d0,       0.0d0,        0.0d0,           0.9729d0,      0.0265d0,      0.0002d0,    0.0004d0,      0.0d0]
-        pi(5,:) = [0.0d0,       0.0d0,        0.0d0,           0.0134d0,      0.9729d0,      0.0134d0,    0.0004d0,      0.0d0]
-        pi(6,:) = [0.0d0,       0.0d0,        0.0d0,           0.0002d0,      0.0265d0,      0.9729d0,    0.0004d0,      0.0d0]
-        pi(7,:) = [0.0042d0,    0.0042d0,     0.0042d0,        0.0042d0,      0.0042d0,      0.0042d0,    0.9690d0,      0.0057d0]
-        pi(8,:) = [0.0d0,       0.0d0,        0.0d0,           0.0d0,         0.0d0,         0.0d0,       0.0576d0,      0.9424d0]
+        !pi(1,:) = [0.9729d0,    0.0265d0,     0.0002d0,        0.0d0,         0.0d0,         0.0d0,       0.0004d0,      0.0d0]
+        !pi(2,:) = [0.0134d0,    0.9729d0,     0.0134d0,        0.0d0,         0.0d0,         0.0d0,       0.0004d0,      0.0d0]
+        !pi(3,:) = [0.0002d0,    0.0265d0,     0.9729d0,        0.0d0,         0.0d0,         0.0d0,       0.0004d0,      0.0d0]
+        !pi(4,:) = [0.0d0,       0.0d0,        0.0d0,           0.9729d0,      0.0265d0,      0.0002d0,    0.0004d0,      0.0d0]
+        !pi(5,:) = [0.0d0,       0.0d0,        0.0d0,           0.0134d0,      0.9729d0,      0.0134d0,    0.0004d0,      0.0d0]
+        !pi(6,:) = [0.0d0,       0.0d0,        0.0d0,           0.0002d0,      0.0265d0,      0.9729d0,    0.0004d0,      0.0d0]
+        !pi(7,:) = [0.0042d0,    0.0042d0,     0.0042d0,        0.0042d0,      0.0042d0,      0.0042d0,    0.9690d0,      0.0057d0]
+        !pi(8,:) = [0.0d0,       0.0d0,        0.0d0,           0.0d0,         0.0d0,         0.0d0,       0.0576d0,      0.9424d0]
 
-        
-        
-        
-        do i = 1, ns
-            pi(i,:) = pi(i,:)/sum(pi(i,:))
-            !print *, sum(pi(i,:))
-        end do
-
-        !p0(1,:) = [1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
-        !
-        !dist = 1d0
-        !do i = 1, 500
-        !    pstat = matmul(p0, pi)
-        !    dist = sum( (pstat - p0)**2d0 )
-        !    p0 = pstat
-        !end do
-
-        !open(21, file='pistat_Exp1.txt')
-        !do i = 1, 7
-        !    write(21, '(f12.6)') pstat(1,i)
-        !end do
-        !close(21)
-
-        !eta=exp(eta)
-        eta = [1.00d0, 1.97d0, 3.89d0, 3.24d0, 6.39d0, 12.61d0, 137.36d0, 1349.46d0]
-
-        !open(11, file='transition_pi.txt')
+          
         !do i = 1, ns
-        !    write(11, '(<ns>(f11.6))') pi(i,:)
+        !    pi(i,:) = pi(i,:)/sum(pi(i,:))
+        !    !print *, sum(pi(i,:))
         !end do
-        !close(11)
-
+        
+        pareto_cutoff = 0.9d0
+        m_tauch = 2.7d0  
+        alpha_pareto = 1.9d0
+        call tauchen_pareto(sig_z, rho_z, nz, m_tauch, pareto_cutoff, alpha_pareto, eta, pi)
+        xi = exp(0.0d0) !exp([-sig_xi, 0.0d0, sig_xi])
+        pi_xi = 1d0 ![0.25d0, 0.5d0, 0.25d0]
 
         ! Determine the initial Distribution of Labor Productivities
 
@@ -518,7 +417,7 @@ contains
         !pini(3)=0.0
         !pini(5)=0.0
         !pini(4)=1.0
-        pini = [0.044d0, 0.412d0, 0.044d0, 0.044d0, 0.412d0, 0.044d0, 0d0, 0d0]
+        !pini = [0.044d0, 0.412d0, 0.044d0, 0.044d0, 0.412d0, 0.044d0, 0d0, 0d0]
 
         !pini = pstat(1,:)
         !pini(7:8) = 0d0
@@ -555,25 +454,44 @@ contains
         do tc=1,jr-1
             stdlel(tc)=(sum( pilab(1:ns,tc)* (log(eta) - sum(pistat*log(eta)))**2 ))
         end do
+        
+        b_ret = 0.4d0*eta
 
-    end subroutine LABOR    
+    end subroutine LABOR 
     
-    subroutine init_ck()
+    subroutine returns_heterogeneity()
+        use params
+        real(8), parameter :: pi_theta_hl = 0.5d0
+        real(8), parameter :: pi_theta_lh = 0.2d0
+        
+        !pi_theta(1,:) = [1.0d0 - pi_theta_hl, pi_theta_hl]
+        !pi_theta(2,:) = [pi_theta_lh, 1.0d0 - pi_theta_lh]
+        pi_theta = 1d0
+        thetas = 1d0 ![1d0, 0d0]
+        
+        Kappas = [0d0] ![-sig_kappa, 0.0d0, +sig_kappa]
+        Kappas = exp(Kappas)
+        pi_kappa = 1d0 ![0.25d0, 0.5d0, 0.25d0]
+        rbar = 0d0
+        
+    end subroutine returns_heterogeneity
+    
+    subroutine initialize()
         use moments
 
         call GRID
         call PREFERENCE
         call DEMOGRAPHICS
         call LABOR
+        call returns_heterogeneity()
         call set_moments()
         
-    end subroutine init_ck    
-
+    end subroutine initialize    
     
     subroutine resid(x1,x2,x3,x4,x5,fv1,fv2,fv3,fv4,fv5)
         use params
         use Mod_Household
-        use Mod_Distribution
+        !use Mod_Distribution
         use int_tictoc
 
         implicit none
@@ -606,7 +524,7 @@ contains
         qwd = qw*frac_ofsh + qd*(1d0-frac_ofsh)
 
         call tic()
-        call SolveHH(save_res=.false.)
+        call SolveHH(save_res=.true.)
         print *, 'Solution took: '
         call toc()
 
@@ -616,7 +534,7 @@ contains
         !CALL DISTRIBUTION
         !call toc()
         call tic()
-        call Distribution_alt2(save_res=.false.)
+        !call Distribution_alt2(save_res=.false.)
         print *, 'Simulation took: '
         call toc()
 
@@ -635,7 +553,6 @@ contains
         exdem=( C + As - (1.0-delta)*K + Govcons - Y )
            
     end subroutine resid
-    
     
     subroutine newton(fun,gues1,gues2,gues3,gues4,gues5)
 
@@ -812,7 +729,6 @@ contains
         
     end subroutine newton    
 
-    
     subroutine klp(x, F, nx, m, sim_moms_2save)
         use params
         use moments
@@ -834,71 +750,13 @@ contains
         integer :: i_closest
         real(8) :: tmp
         
-        !pi_small(1,:) = [0.973280246306594d0, 0.026555967990859d0, 0.000163785702546d0]
-        !pi_small(2,:) = [0.013376147296384d0, 0.973247705407231d0, 0.013376147296385d0]
-        !pi_small(3,:) = [0.000163785702546d0, 0.026555967990859d0, 0.973280246306594d0]
-        pi_small(1,:) = [0.9729d0,    0.0265d0,     0.0002d0]
-        pi_small(2,:) = [0.0134d0,    0.9729d0,     0.0134d0 ]
-        pi_small(3,:) = [0.0002d0,    0.0265d0,     0.9729d0 ]
-        !pi_small(1,:) = [0.874d0, 0.119d0, 0.004d0]
-        !pi_small(2,:) = [0.060d0, 0.878d0, 0.060d0]
-        !pi_small(3,:) = [0.004d0, 0.119d0, 0.874d0]
-        
-        
-        p_in = min( max(x(1), 0d0), 1d0) !0.002d0 ! x(1)
-        p_out = min( max(x(2), 0d0), 1d0) !0.005d0 ! x(2)
-        !p_ll = min( max(x(3), 0d0), 1d0) !0.968018785002481d0 ! x(3)
-        p_lh = min( max(x(3), 0d0), 1d0) !0.968018785002481d0 ! x(3)
-        p_hh = min( max(x(4), 0d0), 1d0) !0.946093025947746d0 ! x(4)
-        p_ll = 1d0-p_lh-6d0*p_out   
-        !if (p_lh < 0.0d0) then
-        !    tmp = p_ll/(6d0*p_out)
-        !    p_lh = 1d-12
-        !    p_out = (1d0-p_lh)/(6d0*(1d0+tmp))
-        !    p_ll = tmp*6d0*p_out
-        !end if
-        p_hl = 1d0-p_hh
-        
-        !psi_vals = [psi_offshore/4.0d0, 110.00000d0/3.0d0, 173.33333d0/4.0d0]!*100
-        psi_vals = [0d0, 110.00000d0/5.0d0, 173.33333d0/5.0d0]!*100
+        psi_vals = 0.5d0 !100000d0 ![5.00000d0/5.0d0, 20d0/5.0d0, 50d0/5.0d0]
+        !psi_vals = [110.00000d0/5.0d0, 173.33333d0/5.0d0, 250.33333d0/5.0d0]!*100
+        !psi_vals = [0d0, 110.00000d0/5.0d0, 173.33333d0/5.0d0]!*100
         bbeta = 0.989d0!0.959d0
         chi = 17.4d0
-        
-        do i = 1, 3
-            pi(i,1:3) = pi_small(i,:)*(1d0-p_in)
-            pi(i,4:6) = 0d0
-            pi(i,7) = p_in
-            pi(i,8) = 0d0
-            pi(3+i,1:3) = 0d0
-            pi(3+i,4:6) = pi_small(i,:)*(1d0-p_in)
-            pi(3+i,7) = p_in
-            pi(3+i,8) = 0d0
-        end do
-        pi(7,1:6) = p_out
-        pi(7,7) = p_ll
-        pi(7,8) = p_lh
-        pi(8,1:6) = 0d0
-        pi(8,7) = p_hl
-        pi(8,8) = p_hh
-        do i = 1, ns
-            pi(i,:) = pi(i,:)/sum(pi(i,:))
-        end do    
-        eta(7) = x(5)
-        eta(8) = x(6)        
-        
 
-        !if (allocated(eta_save)) then
- !           eta_save = eta
- !           pi_save=pi
-        !end if
-      
-        !open(11, file='transition_pi.txt')
-        !do i = 1, ns
-            !write(11, '(<ns>(f11.6))') pi(i,:)
-        !end do
-        !close(11)
-
-        p0(1,:) = [1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
+        p0(1,:) = 1d0/dble(ns) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
 
         dist = 1d0
         do i = 1, 500
@@ -917,7 +775,7 @@ contains
         read(11, '(f20.8)') guesB
         read(11, '(f20.8)') guesS
         close(11)   
-        psi_prob = [1d0/3d0, 1d0/3d0, 1d0/3d0]
+        psi_prob = 1d0 ![1d0/3d0, 1d0/3d0, 1d0/3d0]
         
         call newton(resid,guesr,guesN,guesGovcons,guesB,guesS)
         
@@ -936,7 +794,7 @@ contains
     end subroutine klp
     
     
-    subroutine klp_test()
+    subroutine offshoring_test()
         use params
         integer, parameter :: nparam = 6
         integer, parameter :: nx = nparam
@@ -963,7 +821,7 @@ contains
 
         x0(4) = 0.7424d0
         
-        call init_ck()
+        call initialize()
 
         call klp(x0, fmom, nx, nm, sim_moms_2save)  
 
@@ -1018,6 +876,6 @@ contains
         !
         !write(*, '(A)', advance='yes') 'CSV file has been saved successfully.'
         
-    end subroutine klp_test    
+    end subroutine offshoring_test    
     
 end module CK_routines
