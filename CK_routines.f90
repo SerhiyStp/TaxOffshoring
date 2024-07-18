@@ -469,9 +469,9 @@ contains
         pi_theta = 1d0
         thetas = 1d0 ![1d0, 0d0]
         
-        Kappas = [0d0] ![-sig_kappa, 0.0d0, +sig_kappa]
+        Kappas = [-sig_kappa, 0.0d0, +sig_kappa] ![0d0] 
         Kappas = exp(Kappas)
-        pi_kappa = 1d0 ![0.25d0, 0.5d0, 0.25d0]
+        pi_kappa = [0.25d0, 0.5d0, 0.25d0] !1d0 !
         rbar = 0d0
         
     end subroutine returns_heterogeneity

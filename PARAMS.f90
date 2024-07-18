@@ -125,7 +125,7 @@ MODULE PARAMS
     real(8), parameter :: rF = 0.03d0 !0.01d0
     real(8), parameter :: rR = 0.09d0 !0.06d0
     real(8), parameter :: sig_kappa = 0.05d0
-    integer, parameter :: nkappa = 1 !3 ! Rate of return temporary shocks
+    integer, parameter :: nkappa = 3 !1 !3 ! Rate of return temporary shocks
     real(8) :: Kappas(nkappa)
     real(8) :: pi_kappa(nkappa)
     integer, parameter :: ntheta=1 !2 ! Rate of return persistent types    

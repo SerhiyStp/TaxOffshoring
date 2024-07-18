@@ -23,15 +23,15 @@ offsh = load('offshoring.txt');
 na = size(mtmp,1);
 % ttt = amcutoff(1,2)*ones(na,1);
 
-figure('Position',[20,20,800,600])
-subplot(1,2,1)
-plot(mtmp(:,1),mtmp(:,2))
-xlabel('aprime')
-ylabel('m')
-subplot(1,2,2)
-plot(mtmp(:,1),mtmp(:,5))
-xlabel('aprime')
-ylabel('Offshoring')
+% figure('Position',[20,20,800,600])
+% subplot(1,2,1)
+% plot(mtmp(:,1),mtmp(:,2))
+% xlabel('aprime')
+% ylabel('m')
+% subplot(1,2,2)
+% plot(mtmp(:,1),mtmp(:,5))
+% xlabel('aprime')
+% ylabel('Offshoring')
 
 % afun_test = zeros(501,1);
 % afun_test(1:167,1) = afun(1:167,1);
