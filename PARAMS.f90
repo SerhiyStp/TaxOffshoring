@@ -128,7 +128,7 @@ MODULE PARAMS
     integer, parameter :: nkappa = 3 !1 !3 ! Rate of return temporary shocks
     real(8) :: Kappas(nkappa)
     real(8) :: pi_kappa(nkappa)
-    integer, parameter :: ntheta=1 !2 ! Rate of return persistent types    
+    integer, parameter :: ntheta=2 !1 !2 ! Rate of return persistent types    
     real(8) :: thetas(ntheta)  
     real(8) :: pi_theta(ntheta,ntheta)    
     

@@ -464,10 +464,10 @@ contains
         real(8), parameter :: pi_theta_hl = 0.5d0
         real(8), parameter :: pi_theta_lh = 0.2d0
         
-        !pi_theta(1,:) = [1.0d0 - pi_theta_hl, pi_theta_hl]
-        !pi_theta(2,:) = [pi_theta_lh, 1.0d0 - pi_theta_lh]
-        pi_theta = 1d0
-        thetas = 1d0 ![1d0, 0d0]
+        pi_theta(1,:) = [1.0d0 - pi_theta_hl, pi_theta_hl]
+        pi_theta(2,:) = [pi_theta_lh, 1.0d0 - pi_theta_lh]
+        !pi_theta = 1d0
+        thetas = [1d0, 0.00d0] !1d0 ![1d0, 0d0]
         
         Kappas = [-sig_kappa, 0.0d0, +sig_kappa] ![0d0] 
         Kappas = exp(Kappas)

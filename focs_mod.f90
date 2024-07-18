@@ -35,7 +35,7 @@ contains
         c = (dyh/(1.0d0+tauc)/chi/hrs**sig2)**(1.0d0/sig1)
         c_glob = c
         
-        static_focs_BL_h = (1.0d0+tauc)*c + ap_glob - y_aft - a_glob - TrB
+        static_focs_BL_h = (1.0d0+tauc)*c + ap_glob - net_inc - a_glob - TrB
         !static_focs_BL_h = 0d0
     end function static_focs_BL_h    
     
