@@ -1,15 +1,10 @@
 clear;clc;
-% close all;
+close all;
 
 data = load('test_plot_data.txt');
 jc = data(1,1);
 
 retired = false;
-if retired
-    jr = 1;
-else
-    jr = 100;
-end
 
 mtmp = load('mtmp.txt');
 gridm = load('gridm.txt');
@@ -20,36 +15,29 @@ Vfun = load('Vfun.txt');
 dVfun =load('dVfun.txt');
 ap_test = load('ap_test.txt');
 offsh = load('offshoring.txt');
+capinc = load('capinc.txt');
+labinc = load('labinc.txt');
+ctax = load('constax.txt');
 na = size(mtmp,1);
+gross_inc = load('pretax_inc.txt');
 % ttt = amcutoff(1,2)*ones(na,1);
 
-% figure('Position',[20,20,800,600])
-% subplot(1,2,1)
-% plot(mtmp(:,1),mtmp(:,2))
-% xlabel('aprime')
-% ylabel('m')
-% subplot(1,2,2)
-% plot(mtmp(:,1),mtmp(:,5))
-% xlabel('aprime')
-% ylabel('Offshoring')
-
-% afun_test = zeros(501,1);
-% afun_test(1:167,1) = afun(1:167,1);
-% for i = 168 : 501
-%     afun_test(i,1) = interp1(gridm(1:167,1),afun(1:167,1),gridm(i,1),'linear','extrap');
-% end
-
-if (jc < jr)
+if (retired == false)
     hfun = load('hfun.txt');
 end
 
 alo = gridm(1,1); %30;
 ahi = gridm(end,1); %60;
 
-if (jc < jr)
+if (retired == false)
 
-    figure('Position',[20,20,1200,800])
-    subplot(2,3,1)
+    figure
+    plot(gridm, gross_inc)
+    xlabel('GridA')
+    title('Pre-tax income')    
+
+    figure('Position',[20,20,1400,800])
+    subplot(2,4,1)
     plot(gridm, hfun)
     hold on
     %plot([amcutoff(1,2), amcutoff(1,2)], [min(hfun), max(hfun)], 'k--') 
@@ -59,7 +47,7 @@ if (jc < jr)
     xlim([alo, ahi])
     title('Hours')
 
-    subplot(2,3,2)
+    subplot(2,4,2)
     plot(gridm, dVfun)
     hold on
     %plot([amcutoff(1,2), amcutoff(1,2)], [min(dVfun), max(dVfun)], 'k--')
@@ -69,7 +57,7 @@ if (jc < jr)
     xlim([alo, ahi])
     title('dV')
 
-    subplot(2,3,3)
+    subplot(2,4,3)
     plot(gridm, afun)
     hold on
     %plot([amcutoff(1,2), amcutoff(1,2)], [min(afun), max(afun)], 'k--') 
@@ -84,7 +72,7 @@ if (jc < jr)
     % xlim([20, 40])
     title('A(t+1)')
 
-    subplot(2,3,4)
+    subplot(2,4,4)
     %plot(gridm, cfun, '-bd', 'MarkerSize', 0.5)
     plot(gridm, cfun)
     hold on
@@ -95,15 +83,15 @@ if (jc < jr)
     xlim([alo, ahi])
     title('Consumption')
 
-    subplot(2,3,5)
+    subplot(2,4,5)
     plot(gridm, Vfun)
     hold on
     %plot([amcutoff(1,2), amcutoff(1,2)], [min(Vfun), max(Vfun)], 'k--') 
-    xlabel('GridM')
+    xlabel('GridA')
     xlim([alo, ahi])
     title('Value fn')
 
-    subplot(2,3,6)
+    subplot(2,4,6)
     plot(gridm(1:end-1), dA)
     hold on
     %plot([amcutoff(1,2), amcutoff(1,2)], [min(Vfun), max(Vfun)], 'k--')
@@ -111,13 +99,31 @@ if (jc < jr)
     plot(gridm, offsh(:,2)*max(dA), 'g--')
     xlabel('GridA')
     xlim([alo, ahi])
-    title('dA(t+1)')    
+    title('dA(t+1)')  
+
+    subplot(2,4,7)
+    plot(gridm, capinc)
+    xlabel('GridA')
+    xlim([alo, ahi])
+    title('Capital income')   
+
+    subplot(2,4,8)
+    plot(gridm, labinc)
+    xlabel('GridA')
+    xlim([alo, ahi])
+    title('Labor income')     
     
     common_title = sprintf('Age = %d', jc);
     sgtitle(common_title)   
 
     figure
     plot(gridm, afun-ap_test)
+
+    figure
+    plot(gridm, ctax)
+    xlabel('GridA')
+    xlim([alo, ahi])
+    title('Consumption tax')    
 
 else
     figure('Position',[20,20,1200,800])
