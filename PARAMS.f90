@@ -31,8 +31,8 @@ MODULE PARAMS
     !integer,parameter:: ns=7, na=501, nl=66, nty=2, maxit=10000  ! Size of grids
     !integer,parameter:: ns=8, na=501, nl=66, nty=1, maxit=10000  ! Size of grids
     !integer,parameter:: ns=8, na=3001, nl=1, nty=1, maxit=10000  ! Size of grids
-    integer, parameter :: ns=1 !9 ! Persistent wage shocks - old
-    integer, parameter :: nz=1 !9 ! Persistent wage shocks
+    integer, parameter :: ns=9 ! Persistent wage shocks - old
+    integer, parameter :: nz=9 ! Persistent wage shocks
     integer, parameter :: na=1001 !201 !401 ! Assets
     integer, parameter :: nl=1 !
     integer, parameter :: nty=1

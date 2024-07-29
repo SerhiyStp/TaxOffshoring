@@ -9,6 +9,7 @@ module Mod_Household
     real(8) :: xsols(2, na, n_ofsh, ntheta, nkappa, nz, nxi, Twork)
     real(8), dimension(na, ntheta, nkappa, nz, nxi) :: dV_next, V_next
     real(8) :: offshoring_ret(na, n_ofsh, ntheta, nkappa, nz)
+    real(8) :: pretax_inc(na)
 
     real(8) :: c_mod, lambda_mod, nonlabinc_mod, w_mod, theta_mod, kappa_mod, ap_mod, a_mod, rcur_mod, psi_mod
     
@@ -68,19 +69,31 @@ contains
         real(8) :: hsol, fval
         integer :: ic
         real(8) :: ap_test(na)
-        
-        !external foc_static
-        !external helper_func1
-        external fff_static
-        external fff_helper_func1
+        integer, parameter :: na_test = 50, nh_test = 50
+        real(8) :: GridATest(na_test), GridHTest(nh_test) 
+        real(8) :: da_test, dh_test
+        integer :: ih
+        logical :: solver_failed    
+        real(8) :: asol, rtmp, ytmp !, net_inc_ofsh, net_inc_nofsh 
+
         external static_focs
-        !external static_focs_BL
-        !external fff_static_BL_h
+        external static_focs_ofsh
+        external static_focs_nofsh
+
         
         IERSVR = 0
-        IPACT = 1
+        IPACT = 0 !1
         ISACT = 0
         call erset(IERSVR, IPACT, ISACT)  
+        
+        !da_test = 1.0d0/dble(na_test-1)
+        !dh_test = 1.0d0/dble(nh_test-1)
+        !GridATest = [(ia*da_test, ia=0,na_test-1)]
+        !GridHTest = [(ih*dh_test, ih=0,nh_test-1)]
+        !GridATest = 1.2d0 - 1.5d0/2d0 + GridATest*(1.5d0)
+        !dh_test = 0.2d0*0.8d0
+        !GridHTest = 0.2d0 - dh_test/2d0 + GridHTest*(dh_test)
+        
         
         
         ! Last period
@@ -156,11 +169,13 @@ contains
 
 
                             if (save_res) then
-                                open(20, file='mtmp.txt')
-                                do ia=1,na
-                                    write(20,'(5f16.6)') grida(ia), mtmp(ia), ctmp(ia), vtmp(ia), offshoring_ret(ia, jj, itheta, ikappa, iz) 
-                                end do
-                                close(20)
+                                if (jj == 1 .and. itheta == 1 .and. ikappa == 1 .and. iz == 1) then
+                                    open(20, file='mtmp.txt')
+                                    do ia=1,na
+                                        write(20,'(5f16.6)') grida(ia), mtmp(ia), ctmp(ia), vtmp(ia), offshoring_ret(ia, jj, itheta, ikappa, iz) 
+                                    end do
+                                    close(20)
+                                end if
                             end if
 
                             mdiff = mtmp(2:na) - mtmp(1:na-1)
@@ -269,22 +284,24 @@ contains
 
                             !call toc()
                             if (save_res == .true.) then
-                                open(21, file='gridm.txt')
-                                open(22, file='afun.txt')
-                                open(23, file='cfun.txt')
-                                open(24, file='Vfun.txt')
-                                open(25, file='dVfun.txt')
-                                open(26, file='test_plot_data.txt')
-                                do ia=1,na
-                                    write(21,'(f26.6)') gridm(ia)
-                                    write(22,'(f26.6)') afun_ret(ia, jj, itheta, ikappa, iz, jc)
-                                    write(23,'(f26.6)') cfun_ret(ia, jj, itheta, ikappa, iz, jc)
-                                    write(24,'(f26.6)') Vfun_ret(ia, jj, itheta, ikappa, iz, jc)
-                                    write(25,'(f26.12)') dVfun_ret(ia, jj, itheta, ikappa, iz, jc)
-                                end do
-                                !write(26, '(2f16.6, i4)') acutoff(jj), mcutoff(jj), jc
-                                write(26, '(i4)') jc
-                                close(21); close(22); close(23); close(24); close(25) ; close(26)
+                                if (jj == 1 .and. itheta == 1 .and. ikappa == 1 .and. iz == 1) then
+                                    open(21, file='gridm.txt')
+                                    open(22, file='afun.txt')
+                                    open(23, file='cfun.txt')
+                                    open(24, file='Vfun.txt')
+                                    open(25, file='dVfun.txt')
+                                    open(26, file='test_plot_data.txt')
+                                    do ia=1,na
+                                        write(21,'(f26.6)') gridm(ia)
+                                        write(22,'(f26.6)') afun_ret(ia, jj, itheta, ikappa, iz, jc)
+                                        write(23,'(f26.6)') cfun_ret(ia, jj, itheta, ikappa, iz, jc)
+                                        write(24,'(f26.6)') Vfun_ret(ia, jj, itheta, ikappa, iz, jc)
+                                        write(25,'(f26.12)') dVfun_ret(ia, jj, itheta, ikappa, iz, jc)
+                                    end do
+                                    !write(26, '(2f16.6, i4)') acutoff(jj), mcutoff(jj), jc
+                                    write(26, '(i4)') jc
+                                    close(21); close(22); close(23); close(24); close(25) ; close(26)
+                                end if
                             end if
 
 
@@ -314,7 +331,8 @@ contains
                         do iz = 1, nz
                             do ixi = 1, nxi
                                 w_mod = eta(iz)*xi(ixi)*ep(1,jc)
-                            
+                                
+                                solver_failed = .false.
                                 ! Backward solution step
                                 do ia = 1, na
                                     ap_mod = grida(ia)
@@ -344,10 +362,60 @@ contains
                     
                                     call static_focs(xguess, fvals, 2)
                                     call d_NEQNF (static_focs, xsol, xguess=xguess, fnorm=fnorm)
-                                    fnorm_test = sum(fvals**2d0)/2d0
+                                    !fnorm_test = sum(fvals**2d0)/2d0
+
                                     if (fnorm > 1d-6) then
-                                        print *, 'WARNING: solver failed'
-                                        call static_focs(xsol, fvals, 2)
+                                    !if (ia == 103 .and. iz == 8) then
+                                        !print *, 'WARNING: solver failed'
+                                        solver_failed = .true.
+                                        call d_NEQNF (static_focs_nofsh, xsol, xguess=xguess, fnorm=fnorm)
+                                        if (fnorm > 1d-6) then
+                                            print *, 'WARNING: solver failed in no-offshoring'
+                                        end if
+                                        asol = xsol(1)
+                                        hsol = xsol(2)
+                                        rtmp = rfunc(asol, theta_mod, kappa_mod)
+                                        ytmp = rcur*asol + w_mod*hsol
+                                        net_inc_ofsh = frac_ofsh*ytmp + after_tax_income((1d0-frac_ofsh)*ytmp) - psi_mod
+                                        net_inc_nofsh = after_tax_income(ytmp)  
+                                        if (net_inc_nofsh < net_inc_ofsh) then
+                                            call d_NEQNF (static_focs_ofsh, xsol, xguess=xguess, fnorm=fnorm)    
+                                            if (fnorm > 1d-6) then
+                                                print *, 'WARNING: solver failed in offshoring'
+                                            end if     
+                                            asol = xsol(1)
+                                            hsol = xsol(2)
+                                            rtmp = rfunc(asol, theta_mod, kappa_mod)
+                                            ytmp = rcur*asol + w_mod*hsol
+                                            net_inc_ofsh = frac_ofsh*ytmp + after_tax_income((1d0-frac_ofsh)*ytmp) - psi_mod
+                                            net_inc_nofsh = after_tax_income(ytmp)  
+                                            if (net_inc_nofsh > net_inc_ofsh) then
+                                                print *, 'WARNING: something is wrong with offshoring / no-offshoring cases'
+                                            end if
+                                        end if
+                                        
+                                        !xguess(2) = 0.10d0
+                                        !call d_NEQNF (static_focs, xsol, xguess=xguess, fnorm=fnorm)
+                                        !if (fnorm > 1d-6) then
+                                        !    print *, 'WARNING: solver failed'
+                                        !    da_test = 1.0d0/dble(na_test-1)
+                                        !    dh_test = 1.0d0/dble(nh_test-1)
+                                        !    GridATest = [(ia*da_test, ia=0,na_test-1)]
+                                        !    GridHTest = [(ih*dh_test, ih=0,nh_test-1)]
+                                        !    GridATest = xsol(1) - 1.5d0/2d0 + GridATest*(1.5d0)
+                                        !    dh_test = xsol(2)*0.8d0
+                                        !    GridHTest = xsol(2) - dh_test/2d0 + GridHTest*(dh_test)
+                                        !    call check_focs_on_grid_2d(static_focs, GridATest, GridHTest, na_test, nh_test)                                            
+                                        !end if
+                                        !call static_focs(xsol, fvals, 2)
+                                        !da_test = 1.0d0/dble(na_test-1)
+                                        !dh_test = 1.0d0/dble(nh_test-1)
+                                        !GridATest = [(ia*da_test, ia=0,na_test-1)]
+                                        !GridHTest = [(ih*dh_test, ih=0,nh_test-1)]
+                                        !GridATest = xsol(1) - 1.5d0/2d0 + GridATest*(1.5d0)
+                                        !dh_test = xsol(2)*0.8d0
+                                        !GridHTest = xsol(2) - dh_test/2d0 + GridHTest*(dh_test)
+                                        !call check_focs_on_grid_2d(static_focs, GridATest, GridHTest, na_test, nh_test)
                                     end if
                                     xsols(:, ia, jj, itheta, ikappa, iz, ixi, jc) = xsol
                                                                 
@@ -415,12 +483,7 @@ contains
                                             a_glob = grida(ia)
                                             aprime = grida(1)
                                             ap_glob = aprime
-                                            w_glob = w_mod
-                                            
-                                            !xguess = [max(a_mod*0.8d0, 0.001d0), 0.5d0]
-                                            !call static_focs_BL(xguess, fvals, 2)
-                                            !call d_NEQNF (static_focs_BL, xsol, xguess=xguess, fnorm=fnorm)
-                                            
+                                            w_glob = w_mod                                            
                                             
                                             hlo = 0.000001d0
                                             hhi = 1.0d0
@@ -458,13 +521,7 @@ contains
                                                 else
                                                     i1 = increase(ii)
                                                     i2 = fall(ii)
-                                                    if ((grida(ia) >= atmp(i1) .and. grida(ia) <= atmp(i2)) .or. (ii == nkinks .and. grida(ia) > atmp(i2))) then
-                                                        !!CommonVt(ia,ii) = LinInterp_1d(gridm(ia),mtmp(i1:i2),vtmp(i1:i2),i2-i1+1)
-                                                        !CommonVt(ia,ii) = -1d0/LinInterp_1d(gridm(ia),mtmp(i1:i2),vtmp(i1:i2),i2-i1+1)
-                                                        !CommonH(ia,ii) = LinInterp_1d(gridm(ia),mtmp(i1:i2),htmp(i1:i2),i2-i1+1)
-                                                        !CommonC(ia,ii) = LinInterp_1d(gridm(ia),mtmp(i1:i2),ctmp(i1:i2),i2-i1+1)
-                                                        !CommonA(ia,ii) = LinInterp_1d(gridm(ia),mtmp(i1:i2),atmp(i1:i2),i2-i1+1)
-                                                
+                                                    if ((grida(ia) >= atmp(i1) .and. grida(ia) <= atmp(i2)) .or. (ii == nkinks .and. grida(ia) > atmp(i2))) then                                                
                                                         call basefun(atmp(i1:i2),i2-i1+1,grida(ia),vals,inds)
                                                         CommonH(ia,ii) = vals(1)*htmp(i1-1+inds(1))+vals(2)*htmp(i1-1+inds(2))
                                                         CommonC(ia,ii) = vals(1)*ctmp(i1-1+inds(1))+vals(2)*ctmp(i1-1+inds(2))
@@ -480,9 +537,7 @@ contains
                                     idmax = maxloc(CommonVt, dim=2) 
                                     do ia = 1, na
                                         acur = grida(ia)
-                                        !(na, n_ofsh, ntheta, nkappa, nz, Tret)
                                         hrs = CommonH(ia,idmax(ia))
-                                        !lfun(tyc,sc,ia,jc,jj) = hrs
                                         lfun(ia,jj,itheta,ikappa,iz,ixi,jc) = hrs
                                         cons = CommonC(ia,idmax(ia))
                                         cfun(ia,jj,itheta,ikappa,iz,ixi,jc) = cons
@@ -497,16 +552,14 @@ contains
                                         net_inc = max(net_inc_ofsh, net_inc_nofsh) 
                                         if (net_inc_ofsh >= net_inc_nofsh) then
                                             offshoring(ia,jj,itheta,ikappa,iz,ixi,jc) = 1d0
-                                            ! dD_ = rcur*(frac_ofsh + D_after_tax_income((1d0-frac_ofsh)*gross_inc))
                                             dD_ = 1.0d0 + (frac_ofsh + D_after_tax_income((1d0-frac_ofsh)*gross_inc)*(1d0-frac_ofsh))*(rcur + acur*drcur)
                                             dVfun(ia,jj,itheta,ikappa,iz,ixi,jc) = cons**(-sig1)*dD_
                                         else
                                             offshoring(ia,jj,itheta,ikappa,iz,ixi,jc) = 0d0
-                                            ! dD_ = rcur*D_after_tax_income(gross_inc)
                                             dD_ = (1.0d0 + D_after_tax_income(gross_inc)*(rcur + acur*drcur))
                                             dVfun(ia,jj,itheta,ikappa,iz,ixi,jc) = cons**(-sig1)*dD_
                                         end if    
-
+                                        ap_test(ia) = ap_bc(acur, cons, hrs, rcur, w_mod)
                                         !dVfun(ia,jj,itheta,ikappa,iz,ixi,jc) = marginal_utility(cons,hrs)
                                     end do
                                     deallocate(CommonVt, CommonH, CommonC, CommonA)
@@ -517,17 +570,6 @@ contains
                                         acur = grida(ia)
                                         rcur = rfunc(acur, thetas(itheta), kappas(ikappa))
                                         if (acur <= atmp(1)) then
-                                            
-                                            !a_mod = acur
-                                            !aprime = grida(1)
-                                            !ap_mod = aprime
-                                            !
-                                            !xguess = [a_mod*0.8d0, 0.5d0]
-                                            !call static_focs_BL(xguess, fvals, 2)
-                                            !call d_NEQNF (static_focs_BL, xsol, xguess=xguess, fnorm=fnorm)
-                                            !                                            
-                                            !cons = xsol(1)
-                                            !hrs = xsol(2)   
                                             
                                             r_glob = rfunc(grida(ia), theta_mod, kappa_mod)
                                             a_glob = grida(ia)
@@ -571,7 +613,6 @@ contains
                                             aprime = vals(1)*aptmp(inds(1))+vals(2)*aptmp(inds(2))                                
                                     
                                         end if
-                                        !cfun(ia,jj,itheta,ikappa,iz,jc)
                                         afun(ia,jj,itheta,ikappa,iz,ixi,jc) = aprime
                                         lfun(ia,jj,itheta,ikappa,iz,ixi,jc) = hrs
                                         cfun(ia,jj,itheta,ikappa,iz,ixi,jc) = cons
@@ -580,17 +621,16 @@ contains
                                         ap_test(ia) = ap_bc(acur, cons, hrs, rcur, w_mod)
                                         
                                         gross_inc = rcur*acur + w_mod*hrs
+                                        pretax_inc(ia) = gross_inc
                                         net_inc_ofsh = frac_ofsh*gross_inc + after_tax_income((1d0-frac_ofsh)*gross_inc) - psi_vals(jj)
                                         net_inc_nofsh = after_tax_income(gross_inc)  
                                         net_inc = max(net_inc_ofsh, net_inc_nofsh) 
                                         if (net_inc_ofsh >= net_inc_nofsh) then
                                             offshoring(ia,jj,itheta,ikappa,iz,ixi,jc) = 1d0
-                                            ! dD_ = rcur*(frac_ofsh + D_after_tax_income((1d0-frac_ofsh)*gross_inc))
                                             dD_ = 1.0d0 + (frac_ofsh + D_after_tax_income((1d0-frac_ofsh)*gross_inc)*(1d0-frac_ofsh))*(rcur + acur*drcur)
                                             dVfun(ia,jj,itheta,ikappa,iz,ixi,jc) = cons**(-sig1)*dD_
                                         else
                                             offshoring(ia,jj,itheta,ikappa,iz,ixi,jc) = 0d0
-                                            ! dD_ = rcur*D_after_tax_income(gross_inc)
                                             dD_ = (1.0d0 + D_after_tax_income(gross_inc)*(rcur + acur*drcur))
                                             dVfun(ia,jj,itheta,ikappa,iz,ixi,jc) = cons**(-sig1)*dD_
                                         end if    
@@ -602,34 +642,45 @@ contains
 
                                 !call toc()
                                 if (save_res == .true.) then
-                                    open(21, file='gridm.txt')
-                                    open(22, file='afun.txt')
-                                    open(23, file='cfun.txt')
-                                    open(24, file='Vfun.txt')
-                                    open(25, file='dVfun.txt')
-                                    open(26, file='hfun.txt')
-                                    open(27, file='test_plot_data.txt')
-                                    open(28, file='ap_test.txt')
-                                    open(29, file='offshoring.txt')
-                                    !open(28, file='test_bc.txt')
-                                    do ia=1,na
-                                        write(21,'(f16.6)') grida(ia)
-                                        write(22,'(f16.6)') afun(ia,jj,itheta,ikappa,iz,ixi,jc)
-                                        write(23,'(f16.6)') cfun(ia,jj,itheta,ikappa,iz,ixi,jc)
-                                        write(24,'(f16.6)') Vfun(ia,jj,itheta,ikappa,iz,ixi,jc)
-                                        write(25,'(f16.6)') dVfun(ia,jj,itheta,ikappa,iz,ixi,jc)
-                                        write(26,'(f16.6)') lfun(ia,jj,itheta,ikappa,iz,ixi,jc)
-                                        !write(28,'(f16.6)') test_bc(tyc,sc,ia,jc)
-                                        write(28, '(f16.6)') ap_test(ia)
-                                        if (jc == Twork) then
-                                            write(29, '(2f16.6)') offshoring(ia,jj,itheta,ikappa,iz,ixi,jc), offshoring_ret(ia, jj, itheta, ikappa, iz)
-                                        else
-                                            write(29, '(2f16.6)') offshoring(ia,jj,itheta,ikappa,iz,ixi,jc), offshoring(ia,jj,itheta,ikappa,iz,ixi,jc+1) 
-                                        end if
-                                    end do
-                                    ! write(27, '(2f16.6, i4)') acutoff(jj), mcutoff(jj), jc
-                                    write(27, '(i4)') jc
-                                    close(21); close(22); close(23); close(24); close(25); close(26); close(27); close(28); close(29)  
+                                    !if (solver_failed) then
+                                    if (itheta == 2 .and. iz == 1) then
+                                        open(21, file='gridm.txt')
+                                        open(22, file='afun.txt')
+                                        open(23, file='cfun.txt')
+                                        open(24, file='Vfun.txt')
+                                        open(25, file='dVfun.txt')
+                                        open(26, file='hfun.txt')
+                                        open(27, file='test_plot_data.txt')
+                                        open(28, file='ap_test.txt')
+                                        open(29, file='offshoring.txt')
+                                        open(30, file='pretax_inc.txt')
+                                        open(31, file='capinc.txt')
+                                        open(32, file='labinc.txt')
+                                        open(33, file='constax.txt')
+                                        !open(28, file='test_bc.txt')
+                                        do ia=1,na
+                                            write(21,'(f16.6)') grida(ia)
+                                            write(22,'(f16.6)') afun(ia,jj,itheta,ikappa,iz,ixi,jc)
+                                            write(23,'(f16.6)') cfun(ia,jj,itheta,ikappa,iz,ixi,jc)
+                                            write(24,'(f16.6)') Vfun(ia,jj,itheta,ikappa,iz,ixi,jc)
+                                            write(25,'(f16.6)') dVfun(ia,jj,itheta,ikappa,iz,ixi,jc)
+                                            write(26,'(f16.6)') lfun(ia,jj,itheta,ikappa,iz,ixi,jc)
+                                            !write(28,'(f16.6)') test_bc(tyc,sc,ia,jc)
+                                            write(28, '(f16.6)') ap_test(ia)
+                                            if (jc == Twork) then
+                                                write(29, '(2f16.6)') offshoring(ia,jj,itheta,ikappa,iz,ixi,jc), offshoring_ret(ia, jj, itheta, ikappa, iz)
+                                            else
+                                                write(29, '(2f16.6)') offshoring(ia,jj,itheta,ikappa,iz,ixi,jc), offshoring(ia,jj,itheta,ikappa,iz,ixi,jc+1) 
+                                            end if
+                                            write(30, '(f16.6)') pretax_inc(ia)
+                                            write(31, '(f16.6)') grida(ia)*rfunc(grida(ia), thetas(itheta), kappas(ikappa))
+                                            write(32, '(f16.6)') lfun(ia,jj,itheta,ikappa,iz,ixi,jc)*w_mod
+                                            write(33, '(f16.6)') cfun(ia,jj,itheta,ikappa,iz,ixi,jc)*tauc
+                                        end do
+                                        ! write(27, '(2f16.6, i4)') acutoff(jj), mcutoff(jj), jc
+                                        write(27, '(i4)') jc
+                                        close(21); close(22); close(23); close(24); close(25); close(26); close(27); close(28); close(29); close(30); close(31); close(32); close(33) 
+                                    end if
                                 end if
                         
                             end do
@@ -652,45 +703,49 @@ contains
 
     end subroutine SolveHH
     
-    function foc_static(hrs)
-        real(8) :: hrs
-        real(8) :: foc_static
-        real(8) :: fff_static
-        external fff_static
-        
-        foc_static = fff_static(hrs)
-    
-    end function foc_static
-    
-    !function foc_static(hrs) 
-    !use params, only: chi, sig2, ep, eta, jc, sc, tyc, w, theta0, theta1, taup, tau_max, yb_cutoff
+    !function foc_static(hrs)
     !    real(8) :: hrs
-    !    real(8) :: wtot
-    !    real(8) :: labinc
-    !    !real(8) :: err
     !    real(8) :: foc_static
+    !    real(8) :: fff_static
+    !    external fff_static
     !    
-    !    wtot = w*eta(sc)*ep(tyc,jc)
-    !    labinc = wtot*hrs
-    !    if (labinc < yb_cutoff) then
-    !        foc_static = chi*hrs**sig2 - lambda_mod*( theta0*(1d0-theta1)*(wtot)**(1d0-theta1)*hrs**(-theta1) - taup*wtot)
-    !    else
-    !        foc_static = chi*hrs**sig2 - lambda_mod*( (1-tau_max-taup)*wtot )
-    !    end if
-    !    !err = chi*hrs**sig2 - lambda_mod*(w*eta(sc)*ep(tyc,jc))
+    !    foc_static = fff_static(hrs)
     !
-    !end function foc_static    
+    !end function foc_static
     
-    function helper_func1(hrs)
-        real(8) :: hrs
-        real(8) :: helper_func1
-        real(8) :: fff_helper_func1
-        external fff_helper_func1
+    subroutine check_focs_on_grid_2d(focs, GridX, GridY, nx, ny)
+        integer :: nx, ny
+        real(8) :: GridX(nx)
+        real(8) :: GridY(ny)
+        integer :: ix, iy
+        real(8) :: Errs(2, nx, ny)
+        real(8) :: err(2), x(2)
         
-        helper_func1 = fff_helper_func1(hrs)
+        interface 
+            subroutine focs(x, f, n)
+                integer :: n
+                real(8) :: x(n), f(n)
+            end subroutine focs
+        end interface
+        
+        open(71, file='GridX.txt')
+        open(73, file='ErrsOnGrid.txt')
+        do ix = 1, nx
+            write(71, '(f16.8)') GridX(ix)
+            if (ix == 1) open(72, file='GridY.txt')
+            do iy = 1, ny
+                x(1) = GridX(ix)
+                x(2) = GridY(iy)
+                call focs(x, err, 2)
+                Errs(:, ix, iy) = err
+                write(72, '(f16.8)') GridY(iy)
+                write(73, '(2f16.8)') Errs(:, ix, iy)
+            end do
+            if (ix == 1) close(72)
+        end do  
+        close(71); close(73)
     
-    end function helper_func1  
-    
+    end subroutine check_focs_on_grid_2d 
     
     function ap_bc(a, c, h, r, w) result(res)
         real(8), intent(in) :: a

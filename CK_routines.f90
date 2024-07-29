@@ -298,13 +298,13 @@ contains
 
         yb_cutoff = ( theta0*(1.0d0-theta1)/(1.0d0-tau_max) )**(1d0/theta1)
 
-        !if (ns==1) then
+        if (nz==1) then
         eta=1.0d0
         pi=1.0d0
         pini=1.0d0
         !go to 200
         !else
-        !end if
+        end if
 
 
         nvar=1
