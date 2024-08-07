@@ -679,6 +679,7 @@ contains
                                         end do
                                         ! write(27, '(2f16.6, i4)') acutoff(jj), mcutoff(jj), jc
                                         write(27, '(i4)') jc
+
                                         close(21); close(22); close(23); close(24); close(25); close(26); close(27); close(28); close(29); close(30); close(31); close(32); close(33) 
                                     end if
                                 end if
@@ -699,8 +700,11 @@ contains
                 
             end do
             
+            print *, 'jj = ', jj
+            
         end do
-
+        
+        print *, 'HH optimisation done'
     end subroutine SolveHH
     
     !function foc_static(hrs)

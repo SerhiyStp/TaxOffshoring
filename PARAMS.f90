@@ -195,10 +195,9 @@ MODULE PARAMS
     !real(prec),dimension(nty,ns,na,J,n_ofsh)::optafun
 
 
-    ! Distribution over state space
-    real(prec),dimension(nty,ns,na,J,n_ofsh)::phi,phitot,optphi
-    real(8) :: Phi_work(nty,ns,na,Jr-1,n_ofsh)
-    !real(prec),dimension(nty,ns,na,J)::
+    !! Distribution over state space
+    !real(prec),dimension(nty,ns,na,J,n_ofsh)::phi,phitot,optphi
+    !real(8) :: Phi_work(nty,ns,na,Jr-1,n_ofsh)
 
 
     ! Household value and policy functions

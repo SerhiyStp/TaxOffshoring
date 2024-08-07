@@ -288,7 +288,7 @@ contains
         real(8)::eta_test(ns)
         integer::i
         real(8)::tmp, sigmaeps2_test
-        real(8)::p0(1,ns), ptmp(ns,ns)
+        real(8)::p0(1,nz), p1(1,nz) !ptmp(ns,ns)
         real(8)::dist
         
         
@@ -383,6 +383,19 @@ contains
         m_tauch = 2.7d0  
         alpha_pareto = 1.9d0
         call tauchen_pareto(sig_z, rho_z, nz, m_tauch, pareto_cutoff, alpha_pareto, eta, pi)
+        p0(1,:) = 1d0/dble(nz) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
+
+        dist = 1d0
+        do i = 1, 500
+            p1 = matmul(p0, pi)
+            dist = sum( (p1 - p0)**2d0 )
+            p0 = p1
+            if (dist < 1d-12) exit
+        end do             
+        pini = p0(1,:)
+        
+        
+        
         xi = exp([-sig_xi, 0.0d0, sig_xi]) ! exp(0.0d0) !
         pi_xi = [0.25d0, 0.5d0, 0.25d0] !1d0 !
 
@@ -494,6 +507,7 @@ contains
     
     subroutine initialize()
         use moments
+        use Mod_Distribution, only: init_distr
 
         call GRID
         call PREFERENCE
@@ -501,19 +515,22 @@ contains
         call LABOR
         call returns_heterogeneity()
         call set_moments()
+        call init_distr()
         
     end subroutine initialize    
     
     subroutine resid(x1,x2,x3,x4,x5,fv1,fv2,fv3,fv4,fv5)
         use params
         use Mod_Household
-        !use Mod_Distribution
+        use Mod_Distribution
         use int_tictoc
 
         implicit none
 
         real(prec),intent(in):: x1,x2,x3,x4,x5
         real(prec),intent(out):: fv1,fv2,fv3,fv4,fv5
+        CHARACTER (LEN=*), PARAMETER :: outDir = "tmp/"
+        INTEGER :: iunit
         
         r   = x1
         N   = x2
@@ -539,18 +556,23 @@ contains
         qw = 1.0d0/(1.0d0 + r)
         qwd = qw*frac_ofsh + qd*(1d0-frac_ofsh)
 
-        call tic()
-        call SolveHH(save_res=.true.)
-        print *, 'Solution took: '
-        call toc()
-
+        !call tic()
+        !call SolveHH(save_res=.true.)
+        !print *, 'Solution took: '
+        !call toc()
+        !OPEN(NEWUNIT=iunit, FILE=outDir // "tmp.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
+        !WRITE (iunit) afun
+        !CLOSE(iunit)
 
         ! Find stationary Distribution
         !call tic()
         !CALL DISTRIBUTION
         !call toc()
+        OPEN(NEWUNIT=iunit, FILE=outdir // "tmp.bin", FORM="unformatted", ACCESS="stream", STATUS="old")
+        READ (iunit) afun
+        CLOSE(iunit)        
         call tic()
-        !call Distribution_alt2(save_res=.false.)
+        call Distribution(save_res=.false.)
         print *, 'Simulation took: '
         call toc()
 
@@ -772,14 +794,14 @@ contains
         bbeta = 0.989d0!0.959d0
         chi = 17.4d0
 
-        p0(1,:) = 1d0/dble(ns) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
-
-        dist = 1d0
-        do i = 1, 500
-            pstat = matmul(p0, pi)
-            dist = sum( (pstat - p0)**2d0 )
-            p0 = pstat
-        end do        
+        !p0(1,:) = 1d0/dble(ns) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
+        !
+        !dist = 1d0
+        !do i = 1, 500
+        !    pstat = matmul(p0, pi)
+        !    dist = sum( (pstat - p0)**2d0 )
+        !    p0 = pstat
+        !end do        
         !pini = pstat(1,:)
         !pini(7:8) = 0d0
         !pini = pini/sum(pini)    
