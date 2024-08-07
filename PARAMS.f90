@@ -16,7 +16,7 @@ MODULE PARAMS
     real(8) :: Share_Offshoring, share_off_dist(5), wealth_obs_dist(6), wealth_tot_dist(6),income_dist(6), lab_income_dist(6)
     real(prec):: qd, qw, qwd
     real(prec),parameter:: psi_offshore=2.5d0 !1.5d0 !0.5d0
-    integer,parameter:: n_ofsh=1 !3
+    integer,parameter:: n_ofsh=3 !1 !3
     !real(prec),parameter:: psi_vals(n_ofsh)=[psi_offshore-0.5d0, psi_offshore, psi_offshore+3.5d0]
     real(prec) :: psi_vals(n_ofsh)
     real(8) :: psi_val_top, psi_val_mid
@@ -37,7 +37,7 @@ MODULE PARAMS
     integer, parameter :: nl=1 !
     integer, parameter :: nty=1
     integer, parameter :: maxit=10000
-    integer, parameter :: nxi=1 !3  ! Temporary wage shocks
+    integer, parameter :: nxi=3  ! Temporary wage shocks
 
     integer:: na0,na1,ntauk
 
@@ -131,6 +131,7 @@ MODULE PARAMS
     integer, parameter :: ntheta=2 !1 !2 ! Rate of return persistent types    
     real(8) :: thetas(ntheta)  
     real(8) :: pi_theta(ntheta,ntheta)    
+    real(8) :: pi_theta_stat(ntheta)
     
 
     ! Variables needed for the Tauchen routine

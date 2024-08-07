@@ -383,8 +383,8 @@ contains
         m_tauch = 2.7d0  
         alpha_pareto = 1.9d0
         call tauchen_pareto(sig_z, rho_z, nz, m_tauch, pareto_cutoff, alpha_pareto, eta, pi)
-        xi = exp(0.0d0) !exp([-sig_xi, 0.0d0, sig_xi])
-        pi_xi = 1d0 ![0.25d0, 0.5d0, 0.25d0]
+        xi = exp([-sig_xi, 0.0d0, sig_xi]) ! exp(0.0d0) !
+        pi_xi = [0.25d0, 0.5d0, 0.25d0] !1d0 !
 
         ! Determine the initial Distribution of Labor Productivities
 
@@ -463,9 +463,25 @@ contains
         use params
         real(8), parameter :: pi_theta_hl = 0.5d0
         real(8), parameter :: pi_theta_lh = 0.2d0
+        real(8) :: p0(1, ntheta), p1(1, ntheta)
+        real(8) :: dist
+        integer :: i
         
         pi_theta(1,:) = [1.0d0 - pi_theta_hl, pi_theta_hl]
         pi_theta(2,:) = [pi_theta_lh, 1.0d0 - pi_theta_lh]
+        
+        p0(1,:) = 1d0/dble(ntheta) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
+
+        dist = 1d0
+        do i = 1, 500
+            p1 = matmul(p0, pi_theta)
+            dist = sum( (p1 - p0)**2d0 )
+            p0 = p1
+            if (dist < 1d-12) exit
+        end do             
+        pi_theta_stat = p0(1,:)
+        !print *, sum(pi_theta_stat)
+        
         !pi_theta = 1d0
         thetas = [1d0, 0.00d0] !1d0 ![1d0, 0d0]
         
@@ -750,7 +766,7 @@ contains
         integer :: i_closest
         real(8) :: tmp
         
-        psi_vals = 0.5d0 !100000d0 ![5.00000d0/5.0d0, 20d0/5.0d0, 50d0/5.0d0]
+        psi_vals = [0.1d0, 0.5d0, 1.5d0] !0.5d0 !100000d0 ![5.00000d0/5.0d0, 20d0/5.0d0, 50d0/5.0d0]
         !psi_vals = [110.00000d0/5.0d0, 173.33333d0/5.0d0, 250.33333d0/5.0d0]!*100
         !psi_vals = [0d0, 110.00000d0/5.0d0, 173.33333d0/5.0d0]!*100
         bbeta = 0.989d0!0.959d0
@@ -775,7 +791,7 @@ contains
         read(11, '(f20.8)') guesB
         read(11, '(f20.8)') guesS
         close(11)   
-        psi_prob = 1d0 ![1d0/3d0, 1d0/3d0, 1d0/3d0]
+        psi_prob = [1d0/3d0, 1d0/3d0, 1d0/3d0] !1d0 !
         
         call newton(resid,guesr,guesN,guesGovcons,guesB,guesS)
         
