@@ -531,6 +531,7 @@ contains
         real(prec),intent(out):: fv1,fv2,fv3,fv4,fv5
         CHARACTER (LEN=*), PARAMETER :: outDir = "tmp/"
         INTEGER :: iunit
+        integer :: get_new_soln
         
         r   = x1
         N   = x2
@@ -550,27 +551,28 @@ contains
 
         !CALL HOUSEHOLD
 
+        !!qd = 1.0d0/(1.0d0 + r*(1.d0-tk))
+        !!qw = 1.0d0/(1.0d0 + r)
         !qd = 1.0d0/(1.0d0 + r*(1.d0-tk))
         !qw = 1.0d0/(1.0d0 + r)
-        qd = 1.0d0/(1.0d0 + r*(1.d0-tk))
-        qw = 1.0d0/(1.0d0 + r)
-        qwd = qw*frac_ofsh + qd*(1d0-frac_ofsh)
-
-        !call tic()
-        !call SolveHH(save_res=.true.)
-        !print *, 'Solution took: '
-        !call toc()
-        !OPEN(NEWUNIT=iunit, FILE=outDir // "tmp.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
-        !WRITE (iunit) afun
-        !CLOSE(iunit)
-
-        ! Find stationary Distribution
-        !call tic()
-        !CALL DISTRIBUTION
-        !call toc()
-        OPEN(NEWUNIT=iunit, FILE=outdir // "tmp.bin", FORM="unformatted", ACCESS="stream", STATUS="old")
-        READ (iunit) afun
-        CLOSE(iunit)        
+        !qwd = qw*frac_ofsh + qd*(1d0-frac_ofsh)
+        
+        get_new_soln = 0
+        if (get_new_soln == 1) then
+            call tic()
+            call SolveHH(save_res=.true.)
+            print *, 'Solution took: '
+            call toc()
+            OPEN(NEWUNIT=iunit, FILE=outDir // "tmp.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
+            WRITE (iunit) afun
+            write (iunit) lfun
+            CLOSE(iunit)
+        else
+            OPEN(NEWUNIT=iunit, FILE=outdir // "tmp.bin", FORM="unformatted", ACCESS="stream", STATUS="old")
+            READ (iunit) afun
+            READ (iunit) lfun
+            CLOSE(iunit)    
+        end if
         call tic()
         call Distribution(save_res=.false.)
         print *, 'Simulation took: '

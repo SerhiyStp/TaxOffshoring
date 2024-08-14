@@ -3,6 +3,7 @@ module Mod_Distribution
     implicit none
     
     real(8), allocatable :: Phi(:, :, :, :, :, :, :)
+    real(8), allocatable :: Phi_ret(:, :, :, :, :, :)
     !dimension(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork) :: Phi
     integer, parameter :: na_small = 50
     real(8) :: grida_small(na_small)
@@ -16,6 +17,11 @@ contains
             print *, 'Error allocating Phi'
             stop
         end if
+        allocate(Phi_ret(na, n_ofsh, ntheta, nkappa, nz, Tret), stat=ierr)
+        if (ierr /= 0) then
+            print *, 'Error allocating Phi_ret'
+            stop
+        end if        
     end subroutine init_distr
     
     subroutine Distribution(save_res)
@@ -26,7 +32,7 @@ contains
         use svrgp_int
         use toolbox
         use MyLinInterp
-        use Mod_Household, only: afun
+        use Mod_Household, only: afun, lfun, afun_ret
         !use moments, only: sim_moms, sim_moms_aux, sim_moms_klp
 
         IMPLICIT NONE
@@ -37,9 +43,10 @@ contains
         integer :: inds(2)
         real(8) :: vals(2)
         real(8) :: TT1, TT2
+        real(8), dimension(Twork+Tret) :: abar
+        real(8), dimension(Twork) :: lbar
+        integer :: iunit_lc
         
-        !real(prec), dimension(nty,ns,na,ns,na)::TT
-        !integer::scc,acc,inds(2)
         !real(prec),dimension(2)::vals,help(J)
         !real(prec)::Trn(ns,J,n_ofsh),Transagg1,Tr1,Transagg2,earnl,earnl0,earncap,probb(J)
         !real(prec)::earnings(nty,ns,na,J,n_ofsh),logearnings(nty,ns,na,J,n_ofsh)
@@ -161,30 +168,77 @@ contains
             print *, jc, test
         end do
         
-        !    do tyc=1,nty
-        !        do scc=1,ns
-        !            do jj=1,n_ofsh
-        !            !do acc=1,na
-        !                do sc=1,ns
-        !                    do ac=1,na
-        !                        !afun(ia,jj,itheta,ikappa,iz,ixi,jc)
-        !                        call basefun(grida(1:na),na,afun(tyc,sc,ac,jc-1,jj),vals,inds)
-        !                        !Phi(tyc,scc,acc,jc)=Phi(tyc,scc,acc,jc)+Phi(tyc,sc,ac,jc-1)*TT(tyc,scc,acc,sc,ac)
-        !                        TT1 = vals(1)*pi(sc,scc)
-        !                        TT2 = vals(2)*pi(sc,scc)
-        !                        Phi(tyc,scc,inds(1),jc,jj)=Phi(tyc,scc,inds(1),jc,jj)+Phi(tyc,sc,ac,jc-1,jj)*TT1
-        !                        Phi(tyc,scc,inds(2),jc,jj)=Phi(tyc,scc,inds(2),jc,jj)+Phi(tyc,sc,ac,jc-1,jj)*TT2
-        !                    end do
-        !                end do
-        !            end do
-        !        end do
-        !    end do
-        !    test = sum(Phi(1:nty,1:ns,1:na,jc,1:n_ofsh))
-        !end do
-        !call toc
+        Phi_ret = 0d0
+        print *, 'Retirement: '
+        ! First period of retirement
+        do jj = 1, n_ofsh
+            do itheta = 1, ntheta
+                do ikappa = 1, nkappa
+                    do iz = 1, nz
+                        do ixi = 1, nxi
+                            do ia = 1,na
+                                !(na, n_ofsh, ntheta, nkappa, nz, Tret)
+                                call basefun(grida(1:na),na,afun_ret(ia,jj,itheta,ikappa,iz,1),vals,inds)
+                                do ithetap=1,ntheta
+                                    do ikappap=1,nkappa
+                                        TT1 = vals(1)*pi_theta(itheta,ithetap)*pi_kappa(ikappap)
+                                        TT2 = vals(2)*pi_theta(itheta,ithetap)*pi_kappa(ikappap)
+                                        Phi_ret(inds(1),jj,ithetap,ikappap,iz,1) = Phi_ret(inds(1),jj,ithetap,ikappap,iz,1) +  Phi(ia,jj,itheta,ikappa,iz,ixi,Twork)*TT1 
+                                        Phi_ret(inds(2),jj,ithetap,ikappap,iz,1) = Phi_ret(inds(1),jj,ithetap,ikappap,iz,1) +  Phi(ia,jj,itheta,ikappa,iz,ixi,Twork)*TT2
+                                    end do
+                                end do
+                            end do
+                        end do
+                    end do
+                end do
+            end do
+            test = sum(Phi_ret(:,:,:,:,:,1))
+            print *, Twork+1, test
+        end do
+        ! All other retirement periods
+        do jc = 2, Tret
+            do jj = 1, n_ofsh
+                do itheta = 1, ntheta
+                    do ikappa = 1, nkappa
+                        do iz = 1, nz
+                            do ia = 1,na
+                                !(na, n_ofsh, ntheta, nkappa, nz, Tret)
+                                call basefun(grida(1:na),na,afun_ret(ia,jj,itheta,ikappa,iz,1),vals,inds)
+                                do ithetap=1,ntheta
+                                    do ikappap=1,nkappa
+                                        TT1 = vals(1)*pi_theta(itheta,ithetap)*pi_kappa(ikappap)
+                                        TT2 = vals(2)*pi_theta(itheta,ithetap)*pi_kappa(ikappap)
+                                        Phi_ret(inds(1),jj,ithetap,ikappap,iz,jc) = Phi_ret(inds(1),jj,ithetap,ikappap,iz,jc) +  Phi_ret(ia,jj,itheta,ikappa,iz,jc-1)*TT1 
+                                        Phi_ret(inds(2),jj,ithetap,ikappap,iz,jc) = Phi_ret(inds(1),jj,ithetap,ikappap,iz,jc) +  Phi_ret(ia,jj,itheta,ikappa,iz,jc-1)*TT2
+                                    end do
+                                end do
+                            end do
+                        end do
+                    end do
+                end do
+            end do 
+            test = sum(Phi_ret(:,:,:,:,:,jc))
+            print *, Twork+jc, test            
+        end do
 
+        
         !!call tic
-        !! Find Stationary Distribution over Asset Holdings
+        
+        ! Find Stationary Distribution over Asset Holdings
+        
+        open(newunit=iunit_lc,file='LifeCycle.txt')
+        do jc = 1, Twork
+            abar(jc) = sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc)*afun(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
+            lbar(jc) = sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc)*lfun(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
+            write(iunit_lc, '(i0, 2f9.6)') jc, abar(jc), lbar(jc)
+        end do
+        do jc = 1, Tret
+            abar(Twork+jc) = sum(Phi_ret(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc)*afun_ret(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc))
+            write(iunit_lc, '(i0, 2f9.6)') jc, abar(Twork+jc), 0d0
+        end do
+        close(iunit_lc)
+        
+        
         !
         !do ac=1,na
         !    do jc=1,J

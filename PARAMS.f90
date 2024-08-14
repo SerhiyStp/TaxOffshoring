@@ -211,7 +211,7 @@ MODULE PARAMS
 
 
     ! Average variables by age
-    real(prec),dimension(J):: abar,lbar,labar,cbar,astartbar,meanearn,logmean,varlogearn
+    !real(prec),dimension(J):: abar,lbar,labar,cbar,astartbar,meanearn,logmean,varlogearn
 
 
     ! Average variables by age and type
