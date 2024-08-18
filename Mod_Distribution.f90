@@ -33,6 +33,8 @@ contains
         use toolbox
         use MyLinInterp
         use Mod_Household, only: afun, lfun, afun_ret
+        use io, only: save_array, read_array
+        use ogpf
         !use moments, only: sim_moms, sim_moms_aux, sim_moms_klp
 
         IMPLICIT NONE
@@ -44,70 +46,21 @@ contains
         real(8) :: vals(2)
         real(8) :: TT1, TT2
         real(8), dimension(Twork+Tret) :: abar
-        real(8), dimension(Twork) :: lbar
+        real(8), dimension(Twork) :: lbar, labar
         integer :: iunit_lc
         CHARACTER (LEN=*), PARAMETER :: outDir = "tmp/"
         INTEGER :: iunit_phi        
-        integer :: get_phi
+        integer :: get_phi, get_phi_ret
         real(8) :: help(Twork+Tret)
-        
-        !real(prec),dimension(2)::vals,help(J)
-        !real(prec)::Trn(ns,J,n_ofsh),Transagg1,Tr1,Transagg2,earnl,earnl0,earncap,probb(J)
-        !real(prec)::earnings(nty,ns,na,J,n_ofsh),logearnings(nty,ns,na,J,n_ofsh)
-        !real(8) :: tot_income(nty,ns,na,J,n_ofsh)
-        !real(8) :: wealth_obs(nty,ns,na,J,n_ofsh), wealth_tot(nty,ns,na,J,n_ofsh)
-        !real(8) :: ap, acur, atilde
-        !real(8) :: TT1, TT2, As_tmp, test
-        !real(8) :: earnings_1d(nty*ns*na*J*n_ofsh), phi_1d(nty*ns*na*J*n_ofsh), earnings_1d_sorted(nty*ns*na*J*n_ofsh), phi_1d_sorted(nty*ns*na*J*n_ofsh)
-        !real(8) :: tot_income_1d(nty*ns*na*J*n_ofsh), lab_income_1d(nty*ns*na*J*n_ofsh)
-        !real(8) :: wealth_obs_1d(nty*ns*na*J*n_ofsh), wealth_tot_1d(nty*ns*na*J*n_ofsh), wealth_tot_sorted_1d(nty*ns*na*J*n_ofsh)
-        !!real(8) :: phi_1d_sorted(nty*ns*na*J*n_ofsh)
-        !integer :: iperm(nty*ns*na*J)
-        !integer :: i, i_sorted
-        !!real(8) :: tot_earn, earn_top_01, earn_top_05, earn_99_100, earn_95_99, earn_90_95
-        !real(8) :: inc_top_001, inc_top_01_001, inc_top_1_01, inc_top_10_1, inc_0_90
-        !real(8) :: lab_inc_top_001, lab_inc_top_01_001, lab_inc_top_1_01, lab_inc_top_10_1, lab_inc_0_90
-        !real(8) :: wealth_obs_top_001, wealth_obs_top_01_001, wealth_obs_top_1_01, wealth_obs_top_10_1, wealth_obs_0_90
-        !real(8) :: wealth_tot_top_001, wealth_tot_top_01_001, wealth_tot_top_1_01, wealth_tot_top_10_1, wealth_tot_0_90
-        !real(8) :: wealth_tot_cutoff_top_001, wealth_tot_cutoff_top_01, wealth_tot_cutoff_top_1, wealth_tot_cutoff_top_10
-        !real(8) :: share_off_top_001, share_off_top_01_001, share_off_top_1_01, share_off_top_10_1, share_off_0_90
-        !!real(8) :: earn_1quint, earn_2quint, earn_3quint, earn_4quint, earn_5quint
-        !!real(8) :: tot_wealth, wealth_top_01, wealth_top_05, wealth_99_100, wealth_95_99, wealth_90_95
-        !!real(8) :: wealth_1quint, wealth_2quint, wealth_3quint, wealth_4quint, wealth_5quint
-        !real(8) :: share
-        !!real(8) :: afun_1d(nty*ns*na*J*n_ofsh), afun_1d_sorted(nty*ns*na*J*n_ofsh)
-        !
-        !real(8) :: gini_earnings, gini_wealth_tot, gini_wealth_obs, gini_inc, gini_lab_inc
-        !real(8) :: fx(nty*ns*na*J*n_ofsh), lorenz_earn(nty*ns*na*J*n_ofsh), lorenz_wealth(nty*ns*na*J*n_ofsh), lorenz_inc(nty*ns*na*J*n_ofsh)
-        !
-        !!real(8) :: Share_Offshoring
-        !real(8) :: test_phi
-        !
-        !integer :: ntot
-        !real(8) :: test_w_top_05, test1, test2, test_w_top_01, test_w_90_95, test_w_95_99, test_w_99_100
-        !real(8) :: test_w_5q, test_w_4q, test_w_3q, test_w_2q, test_w_1q
-        !real(8) :: lbar_test(J,4)
-        !
-        !integer :: jj
-        !real(8) :: testPhi
-        !integer :: sort_key(nty*ns*na*J*n_ofsh)
-        !integer :: info
-        !real(8) :: phi_tot
-        !real(8) :: test3, test4, test5
-        !real(8) :: prob_top_001, prob_top_01_001, prob_top_1_01, prob_top_10_1, prob_0_90   
-        !real(8) :: frac_above, frac_below
-        !real(8) :: tmp1, tmp2, tmp3
+        type(gpf):: gp
+        integer :: id_tmp
         logical :: save_res
-        
-
-        
-
-
-        
-        !jj = 1
         
         ! Initialize Distribution by Computing Distribution for first Generation
         get_phi = 0
+        get_phi_ret = 0
+        
+        
         if (get_phi == 1) then
             
         Phi=0.0d0
@@ -174,18 +127,22 @@ contains
             print *, jc, test
         end do
         
-        OPEN(NEWUNIT=iunit_phi, FILE=outDir // "Phi.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
-        WRITE (iunit_phi) Phi
-        CLOSE(iunit_phi)
+        !OPEN(NEWUNIT=iunit_phi, FILE=outDir // "Phi.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
+        !WRITE (iunit_phi) Phi
+        !CLOSE(iunit_phi)
+        call save_array(Phi, outDir // "Phi.bin")
         
         else
-            OPEN(NEWUNIT=iunit_phi, FILE=outDir // "Phi.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
-            read (iunit_phi) Phi
-            CLOSE(iunit_phi)   
+            !OPEN(NEWUNIT=iunit_phi, FILE=outDir // "Phi.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
+            !read (iunit_phi) Phi
+            !CLOSE(iunit_phi)  
+            call read_array(Phi, outDir // "Phi.bin")
             test = sum(Phi(:,:,:,:,:,:,Twork))
             print *, jc, test            
         end if
         
+        
+        if (get_phi_ret == 1) then
         Phi_ret = 0d0
         print *, 'Retirement: '
         ! First period of retirement
@@ -244,7 +201,12 @@ contains
             test = sum(Phi_ret(:,:,:,:,:,jc))
             print *, Twork+jc, test            
         end do
-
+        
+        call save_array(Phi_ret, outDir // "Phi_ret.dat")
+        
+        else
+            call read_array(Phi_ret, outDir // "Phi_ret.dat")    
+        end if
         
         !!call tic
         
@@ -254,13 +216,16 @@ contains
         do jc = 1, Twork
             abar(jc) = sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc)*afun(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
             lbar(jc) = sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc)*lfun(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
-            write(iunit_lc, '(i0, 2f9.6)') jc, abar(jc), lbar(jc)
+            labar(jc) = sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc)*lfun(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
+            write(iunit_lc, '(i0, 2f9.6)') jc, abar(jc), labar(jc)
         end do
         do jc = 1, Tret
             abar(Twork+jc) = sum(Phi_ret(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc)*afun_ret(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc))
             write(iunit_lc, '(i0, 2f9.6)') Twork+jc, abar(Twork+jc), 0d0
         end do
         close(iunit_lc)
+        
+        As = sum( Nu(1:J)*abar(1:J) )
         
         
         do ia = 1, na
@@ -290,6 +255,17 @@ contains
             print*,'Should equal 1', sum(ADis(1:na))
             print *, 'ADis in DISTRIB.f90.'
             pause
+        else
+            ! Annotation: set title, xlabel, ylabel, line specification
+            call gp%title('Distribution over assets')
+            call gp%xlabel('assets')
+            call gp%ylabel('f')
+
+            !Call Plot to draw a vector against a vector of data
+            !The last argument defines the line specification
+            !call gp%plot(grida,ADis,'with linespoints lt 2 pt 4')    
+            id_tmp = maxloc(grida, dim=1, mask=(ADis > 1d-6))
+            call gp%plot(grida(1:id_tmp),ADis(1:id_tmp),'with lines') 
         end if
         !
         !do jc=1,J

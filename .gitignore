@@ -10,5 +10,6 @@ tags
 x64/
 tmp/
 .vs/
+*.gp
 *.png
 fort.*
