@@ -46,6 +46,10 @@ contains
         real(8), dimension(Twork+Tret) :: abar
         real(8), dimension(Twork) :: lbar
         integer :: iunit_lc
+        CHARACTER (LEN=*), PARAMETER :: outDir = "tmp/"
+        INTEGER :: iunit_phi        
+        integer :: get_phi
+        real(8) :: help(Twork+Tret)
         
         !real(prec),dimension(2)::vals,help(J)
         !real(prec)::Trn(ns,J,n_ofsh),Transagg1,Tr1,Transagg2,earnl,earnl0,earncap,probb(J)
@@ -103,7 +107,9 @@ contains
         !jj = 1
         
         ! Initialize Distribution by Computing Distribution for first Generation
-
+        get_phi = 0
+        if (get_phi == 1) then
+            
         Phi=0.0d0
         !(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork)
         !do ia = 1, na
@@ -168,6 +174,18 @@ contains
             print *, jc, test
         end do
         
+        OPEN(NEWUNIT=iunit_phi, FILE=outDir // "Phi.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
+        WRITE (iunit_phi) Phi
+        CLOSE(iunit_phi)
+        
+        else
+            OPEN(NEWUNIT=iunit_phi, FILE=outDir // "Phi.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
+            read (iunit_phi) Phi
+            CLOSE(iunit_phi)   
+            test = sum(Phi(:,:,:,:,:,:,Twork))
+            print *, jc, test            
+        end if
+        
         Phi_ret = 0d0
         print *, 'Retirement: '
         ! First period of retirement
@@ -178,23 +196,29 @@ contains
                         do ixi = 1, nxi
                             do ia = 1,na
                                 !(na, n_ofsh, ntheta, nkappa, nz, Tret)
-                                call basefun(grida(1:na),na,afun_ret(ia,jj,itheta,ikappa,iz,1),vals,inds)
+                                call basefun(grida(1:na),na,afun(ia,jj,itheta,ikappa,iz,ixi,Twork),vals,inds)
+                                test = 0d0
                                 do ithetap=1,ntheta
                                     do ikappap=1,nkappa
                                         TT1 = vals(1)*pi_theta(itheta,ithetap)*pi_kappa(ikappap)
                                         TT2 = vals(2)*pi_theta(itheta,ithetap)*pi_kappa(ikappap)
+                                        !test = test + TT1 + TT2
                                         Phi_ret(inds(1),jj,ithetap,ikappap,iz,1) = Phi_ret(inds(1),jj,ithetap,ikappap,iz,1) +  Phi(ia,jj,itheta,ikappa,iz,ixi,Twork)*TT1 
-                                        Phi_ret(inds(2),jj,ithetap,ikappap,iz,1) = Phi_ret(inds(1),jj,ithetap,ikappap,iz,1) +  Phi(ia,jj,itheta,ikappa,iz,ixi,Twork)*TT2
+                                        Phi_ret(inds(2),jj,ithetap,ikappap,iz,1) = Phi_ret(inds(2),jj,ithetap,ikappap,iz,1) +  Phi(ia,jj,itheta,ikappa,iz,ixi,Twork)*TT2
                                     end do
                                 end do
+                                !if (abs(test-1d0) > 1d-9) then
+                                !    print *, test
+                                !end if
                             end do
                         end do
                     end do
                 end do
             end do
-            test = sum(Phi_ret(:,:,:,:,:,1))
-            print *, Twork+1, test
         end do
+        test = sum(Phi_ret(:,:,:,:,:,1))
+        print *, Twork+1, test 
+        
         ! All other retirement periods
         do jc = 2, Tret
             do jj = 1, n_ofsh
@@ -203,13 +227,13 @@ contains
                         do iz = 1, nz
                             do ia = 1,na
                                 !(na, n_ofsh, ntheta, nkappa, nz, Tret)
-                                call basefun(grida(1:na),na,afun_ret(ia,jj,itheta,ikappa,iz,1),vals,inds)
+                                call basefun(grida(1:na),na,afun_ret(ia,jj,itheta,ikappa,iz,jc-1),vals,inds)
                                 do ithetap=1,ntheta
                                     do ikappap=1,nkappa
                                         TT1 = vals(1)*pi_theta(itheta,ithetap)*pi_kappa(ikappap)
                                         TT2 = vals(2)*pi_theta(itheta,ithetap)*pi_kappa(ikappap)
                                         Phi_ret(inds(1),jj,ithetap,ikappap,iz,jc) = Phi_ret(inds(1),jj,ithetap,ikappap,iz,jc) +  Phi_ret(ia,jj,itheta,ikappa,iz,jc-1)*TT1 
-                                        Phi_ret(inds(2),jj,ithetap,ikappap,iz,jc) = Phi_ret(inds(1),jj,ithetap,ikappap,iz,jc) +  Phi_ret(ia,jj,itheta,ikappa,iz,jc-1)*TT2
+                                        Phi_ret(inds(2),jj,ithetap,ikappap,iz,jc) = Phi_ret(inds(2),jj,ithetap,ikappap,iz,jc) +  Phi_ret(ia,jj,itheta,ikappa,iz,jc-1)*TT2
                                     end do
                                 end do
                             end do
@@ -234,12 +258,21 @@ contains
         end do
         do jc = 1, Tret
             abar(Twork+jc) = sum(Phi_ret(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc)*afun_ret(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc))
-            write(iunit_lc, '(i0, 2f9.6)') jc, abar(Twork+jc), 0d0
+            write(iunit_lc, '(i0, 2f9.6)') Twork+jc, abar(Twork+jc), 0d0
         end do
         close(iunit_lc)
         
         
-        !
+        do ia = 1, na
+            do jc = 1, Twork
+                help(jc) = sum(Phi(ia,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
+            end do
+            do jc = 1, Tret
+                help(Twork+jc) = sum(Phi_ret(ia,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc))
+            end do
+            ADis(ia) = sum(help*mu)
+        end do
+        
         !do ac=1,na
         !    do jc=1,J
         !        help(jc)=sum(Phi(1:nty,1:ns,ac,jc,1:n_ofsh))
@@ -247,16 +280,17 @@ contains
         !    ADis(ac)= sum( help *mu ) 
         !end do
         !
-        !if ( ADis(na) > 0.0 ) then
-        !    !	print*,'Enlarge Grid', ADis(na)
-        !end if
-        !
-        !
-        !if ( (sum(ADis(1:na)) > 1.01) .or. (sum(ADis(1:na))<0.99 )) then
-        !    print*,'Should equal 1', sum(ADis(1:na))
-        !    print *, 'ADis in DISTRIB.f90.'
-        !    !pause
-        !end if
+        if ( ADis(na) > 0.0 ) then
+            print*,'Enlarge Grid', ADis(na)
+        end if
+        
+        test = sum(ADis(1:na))
+        print *, test
+        if ( (test > 1.01) .or. (test<0.99 )) then
+            print*,'Should equal 1', sum(ADis(1:na))
+            print *, 'ADis in DISTRIB.f90.'
+            pause
+        end if
         !
         !do jc=1,J
         !    test = sum(Phi(1:nty,1:ns,1:na,jc,1:n_ofsh))

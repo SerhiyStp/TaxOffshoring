@@ -49,7 +49,7 @@ MODULE PARAMS
     integer,parameter:: J = 81
     integer,parameter:: Tret = J-Jr+1
     integer,parameter:: Twork = Jr-1
-    real(prec),parameter:: nn=0.011
+    real(prec),parameter:: nn=0.0d0 !0.011
 
 
     ! Indicators

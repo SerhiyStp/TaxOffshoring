@@ -560,17 +560,19 @@ contains
         get_new_soln = 0
         if (get_new_soln == 1) then
             call tic()
-            call SolveHH(save_res=.true.)
+            call SolveHH(save_res=.false.)
             print *, 'Solution took: '
             call toc()
             OPEN(NEWUNIT=iunit, FILE=outDir // "tmp.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
             WRITE (iunit) afun
             write (iunit) lfun
+            write (iunit) afun_ret
             CLOSE(iunit)
         else
             OPEN(NEWUNIT=iunit, FILE=outdir // "tmp.bin", FORM="unformatted", ACCESS="stream", STATUS="old")
             READ (iunit) afun
             READ (iunit) lfun
+            read (iunit) afun_ret
             CLOSE(iunit)    
         end if
         call tic()
