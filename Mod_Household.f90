@@ -5,7 +5,6 @@ module Mod_Household
     
     real(8), dimension(na, n_ofsh, ntheta, nkappa, nz, Tret) :: Vfun_ret, cfun_ret, afun_ret, dVfun_ret
     real(8), dimension(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork) :: Vfun, cfun, lfun, dVfun, afun, offshoring
-    ! real(8), dimension(na, n_ofsh, ntheta, nkappa, nz, nxi, Jr) :: Vfun_work, dVfun_work
     real(8) :: xsols(2, na, n_ofsh, ntheta, nkappa, nz, nxi, Twork)
     real(8), dimension(na, ntheta, nkappa, nz, nxi) :: dV_next, V_next
     real(8) :: offshoring_ret(na, n_ofsh, ntheta, nkappa, nz)
@@ -94,7 +93,7 @@ contains
         !dh_test = 0.2d0*0.8d0
         !GridHTest = 0.2d0 - dh_test/2d0 + GridHTest*(dh_test)
         
-        
+        yb_cutoff = ( theta0*(1.0d0-theta1)/(1.0d0-tau_max) )**(1d0/theta1)
         
         ! Last period
         offshoring_ret = 0.0d0
@@ -330,7 +329,7 @@ contains
                         kappa_mod = kappas(ikappa)
                         do iz = 1, nz
                             do ixi = 1, nxi
-                                w_mod = eta(iz)*xi(ixi)*ep(1,jc)
+                                w_mod = eta(iz)*xi(ixi)*ep(1,jc)*w
                                 
                                 solver_failed = .false.
                                 ! Backward solution step
@@ -393,29 +392,6 @@ contains
                                                 print *, 'WARNING: something is wrong with offshoring / no-offshoring cases'
                                             end if
                                         end if
-                                        
-                                        !xguess(2) = 0.10d0
-                                        !call d_NEQNF (static_focs, xsol, xguess=xguess, fnorm=fnorm)
-                                        !if (fnorm > 1d-6) then
-                                        !    print *, 'WARNING: solver failed'
-                                        !    da_test = 1.0d0/dble(na_test-1)
-                                        !    dh_test = 1.0d0/dble(nh_test-1)
-                                        !    GridATest = [(ia*da_test, ia=0,na_test-1)]
-                                        !    GridHTest = [(ih*dh_test, ih=0,nh_test-1)]
-                                        !    GridATest = xsol(1) - 1.5d0/2d0 + GridATest*(1.5d0)
-                                        !    dh_test = xsol(2)*0.8d0
-                                        !    GridHTest = xsol(2) - dh_test/2d0 + GridHTest*(dh_test)
-                                        !    call check_focs_on_grid_2d(static_focs, GridATest, GridHTest, na_test, nh_test)                                            
-                                        !end if
-                                        !call static_focs(xsol, fvals, 2)
-                                        !da_test = 1.0d0/dble(na_test-1)
-                                        !dh_test = 1.0d0/dble(nh_test-1)
-                                        !GridATest = [(ia*da_test, ia=0,na_test-1)]
-                                        !GridHTest = [(ih*dh_test, ih=0,nh_test-1)]
-                                        !GridATest = xsol(1) - 1.5d0/2d0 + GridATest*(1.5d0)
-                                        !dh_test = xsol(2)*0.8d0
-                                        !GridHTest = xsol(2) - dh_test/2d0 + GridHTest*(dh_test)
-                                        !call check_focs_on_grid_2d(static_focs, GridATest, GridHTest, na_test, nh_test)
                                     end if
                                     xsols(:, ia, jj, itheta, ikappa, iz, ixi, jc) = xsol
                                                                 
@@ -706,17 +682,7 @@ contains
         
         print *, 'HH optimisation done'
     end subroutine SolveHH
-    
-    !function foc_static(hrs)
-    !    real(8) :: hrs
-    !    real(8) :: foc_static
-    !    real(8) :: fff_static
-    !    external fff_static
-    !    
-    !    foc_static = fff_static(hrs)
-    !
-    !end function foc_static
-    
+        
     subroutine check_focs_on_grid_2d(focs, GridX, GridY, nx, ny)
         integer :: nx, ny
         real(8) :: GridX(nx)

@@ -12,4 +12,6 @@ tmp/
 .vs/
 *.gp
 *.png
+*.i90
+*.mod
 fort.*

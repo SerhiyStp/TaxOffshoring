@@ -174,7 +174,8 @@ MODULE PARAMS
     real(prec),allocatable:: tauk(:)
 
     real(8),parameter:: tk=0.283d0
-    real(8),parameter:: theta0=0.940d0 !0.917d0
+    !real(8),parameter:: theta0=0.940d0 !0.917d0
+    real(8) :: theta0
     real(8),parameter:: theta1=0.183d0 !0.137d0
     real(8),parameter:: tau_max = 0.396d0
     real(8):: yb_cutoff
@@ -186,7 +187,8 @@ MODULE PARAMS
     integer:: a0c,a1c	
     integer:: taukc			
 
-    real(prec):: govcons
+    !real(prec):: govcons
+    real(8), parameter :: Govcons = 0.5d0 !25.5490651400000d0
     real(8) :: GovconsN
 
     real(prec)::socwelf2,optr,optw,optN,optK
@@ -221,6 +223,7 @@ MODULE PARAMS
 
     ! Prices of capital and labor; labor supply and capital stock, and other 
     real(prec):: r,w,N,LabS,K,As,Astart,Y,C,Tr,exdem,Totinctax,hours,Transagg,stdle,stdleini
+    real(8) :: Rs, TaxS, RetS, Rs_aux, YauxS, AftTaxauxS, TaxCS, TaxaboveybS
     real(8) :: rbar
 
 
@@ -251,6 +254,15 @@ MODULE PARAMS
 
 CONTAINS
     
+    
+    function tax_income(y) result(res)
+        real(8), intent(in) :: y
+        real(8) :: res
+        
+        res = y - after_tax_income(y)
+    end function tax_income
+    
+    
     function D_after_tax_income(y) result(res)
         real(8), intent(in) :: y
         real(8) :: res
@@ -271,6 +283,21 @@ CONTAINS
         res = theta0*min(yb_cutoff,y)**(1d0-theta1) + (1d0-tau_max)*max(0d0, y-yb_cutoff)
     
     end function after_tax_income
+    
+    
+    function after_tax_income_aux(y) result(res)
+        real(8), intent(in) :: y
+        real(8) :: res
+        
+        if (y >= yb_cutoff) then
+            res = yb_cutoff**(1d0-theta1)
+            !res = theta0*yb_cutoff**(1d0-theta1)
+        else
+            res = y**(1d0-theta1)
+            !res = theta0*y**(1d0-theta1)
+        end if
+    
+    end function after_tax_income_aux
     
     function rfunc(a, theta, kappa)
         real(8), intent(in) :: a

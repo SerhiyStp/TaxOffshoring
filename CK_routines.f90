@@ -54,11 +54,11 @@ contains
         IF (ind_pref.eq.1) THEN 
             bbeta	= beta_NS
             delta	= delta_NS
-            govcons = govconsNS
+            !govcons = govconsNS
         ELSE
             bbeta	= beta_S
             delta	= delta_S
-            govcons = govconsS
+            !govcons = govconsS
         ENDIF
 
     end subroutine PREFERENCE   
@@ -255,10 +255,6 @@ contains
         ! THIS SUBROUTINE DEFINES THE STOCHASTIC PROCESS FOR LABOR PRODUCTIVITY
 
         use params
-        ! use toolbox, only: rouwenhorst
-        ! use toolbox_kk
-
-        !use MSIMSL
         use TAUCHEN_mod, only: tauchen_pareto
 
         implicit none
@@ -273,22 +269,9 @@ contains
         real(prec):: rho
         real(prec):: sigmaeps
         real(prec):: sigma2alpha
-
-        real(8)::pi_small(5,5)
-        real(8)::pi_small_test(5,5)
-        real(8)::eta_small(5)
-        real(8)::eta_small_test(5)
-        real(8)::pistat_small(5)
-        real(8)::p_i6
-        real(8)::p_66
-        real(8)::p_67
-        real(8)::p_77
-        real(8)::e6,e7
-        real(8)::pi_test(ns,ns)
-        real(8)::eta_test(ns)
         integer::i
         real(8)::tmp, sigmaeps2_test
-        real(8)::p0(1,nz), p1(1,nz) !ptmp(ns,ns)
+        real(8)::p0(1,nz), p1(1,nz) 
         real(8)::dist
         
         
@@ -296,7 +279,7 @@ contains
         real(8) :: alpha_pareto        
 
 
-        yb_cutoff = ( theta0*(1.0d0-theta1)/(1.0d0-tau_max) )**(1d0/theta1)
+        !yb_cutoff = ( theta0*(1.0d0-theta1)/(1.0d0-tau_max) )**(1d0/theta1)
 
         if (nz==1) then
         eta=1.0d0
@@ -336,49 +319,7 @@ contains
         !
         !eta=exp(eta)
         !eta=eta/(sum(pistat*eta))    ! normalization of e
-        !						     ! e are ordered e1<e2...<en
-
-        ! Kindermann & Krueger parameters for unskilled: =======================================
-        !pi(1,:) = [0.969909d0, 0.029317d0, 0.000332d0, 0.00002d0, 0.0d0, 0.000440d0, 0d0]
-        !pi(1,:) = pi(1,:)/sum(pi(1,:))
-        !pi(2,:) = [0.007329d0, 0.970075d0, 0.021989d0, 0.000166d0, 0.0d0, 0.000440d0, 0d0]
-        !pi(2,:) = pi(2,:)/sum(pi(2,:))
-        !pi(3,:) = [0.000055d0, 0.014659d0, 0.970130d0, 0.014659d0, 0.000055d0, 0.000440d0, 0d0]
-        !pi(3,:) = pi(3,:)/sum(pi(3,:))
-        !pi(4,:) = [0d0, 0.000166d0, 0.021989d0, 0.970075d0, 0.007329d0, 0.000440d0, 0d0]
-        !pi(4,:) = pi(4,:)/sum(pi(4,:))
-        !pi(5,:) = [0d0, 0.000002d0, 0.000332d0, 0.029317d0, 0.989909d0, 0.00044d0, 0d0]
-        !pi(5,:) = pi(5,:)/sum(pi(5,:))
-        !pi(6,:) = [0d0, 0d0, 0.002266d0, 0d0, 0d0, 0.97d0, 0.027734d0]
-        !pi(6,:) = pi(6,:)/sum(pi(6,:))
-        !pi(7,:) = [0d0, 0d0, 0d0, 0d0, 0d0, 0.288746d0, 0.711254d0]
-        !pi(7,:) = pi(7,:)/sum(pi(7,:))
-        !!print *, sum(pi(1,:))
-        !!print *, sum(pi(2,:))
-        !!print *, sum(pi(3,:))
-        !!print *, sum(pi(4,:))
-        !!print *, sum(pi(5,:))
-        !!print *, sum(pi(6,:))
-        !!print *, sum(pi(7,:))
-        !
-        !!print *, 'test'
-        !eta = [0.1354d0, 0.3680d0, 1.0d0, 2.7176d0, 7.3853d0, 19.7204d0, 654.0124d0]
-        
-        !pi(1,:) = [0.9729d0,    0.0265d0,     0.0002d0,        0.0d0,         0.0d0,         0.0d0,       0.0004d0,      0.0d0]
-        !pi(2,:) = [0.0134d0,    0.9729d0,     0.0134d0,        0.0d0,         0.0d0,         0.0d0,       0.0004d0,      0.0d0]
-        !pi(3,:) = [0.0002d0,    0.0265d0,     0.9729d0,        0.0d0,         0.0d0,         0.0d0,       0.0004d0,      0.0d0]
-        !pi(4,:) = [0.0d0,       0.0d0,        0.0d0,           0.9729d0,      0.0265d0,      0.0002d0,    0.0004d0,      0.0d0]
-        !pi(5,:) = [0.0d0,       0.0d0,        0.0d0,           0.0134d0,      0.9729d0,      0.0134d0,    0.0004d0,      0.0d0]
-        !pi(6,:) = [0.0d0,       0.0d0,        0.0d0,           0.0002d0,      0.0265d0,      0.9729d0,    0.0004d0,      0.0d0]
-        !pi(7,:) = [0.0042d0,    0.0042d0,     0.0042d0,        0.0042d0,      0.0042d0,      0.0042d0,    0.9690d0,      0.0057d0]
-        !pi(8,:) = [0.0d0,       0.0d0,        0.0d0,           0.0d0,         0.0d0,         0.0d0,       0.0576d0,      0.9424d0]
-
-          
-        !do i = 1, ns
-        !    pi(i,:) = pi(i,:)/sum(pi(i,:))
-        !    !print *, sum(pi(i,:))
-        !end do
-        
+        !						     ! e are ordered e1<e2...<en        
         pareto_cutoff = 0.9d0
         m_tauch = 2.7d0  
         alpha_pareto = 1.9d0
@@ -532,32 +473,29 @@ contains
         CHARACTER (LEN=*), PARAMETER :: outDir = "tmp/"
         INTEGER :: iunit
         integer :: get_new_soln
+        real(8) :: KN, w_test
         
         r   = x1
-        N   = x2
+        !N   = x2
+        rbar = x2
         !a2  = x3
-        Govcons = x3
+        !Govcons = x3
+        theta0 = x3
         TrB = x4 
         SS  = x5 
 
-        K = N*( (alpha*TFP) / (r+delta) )**(1.0/(1.0-alpha))        ! Capital Stock
-        Y = TFP*(K**alpha)*(N**(1.0-alpha))					        ! Aggregate Output
-        w = (1.0-alpha)*Y/N											! Wages
+        !K = N*( (alpha*TFP) / (r+delta) )**(1.0/(1.0-alpha))        ! Capital Stock
+        !Y = TFP*(K**alpha)*(N**(1.0-alpha))					        ! Aggregate Output
+        !w = (1.0-alpha)*Y/N											! Wages
+        
+        KN = ( alpha*TFP/(r+delta) )**(1.0d0/(1.0d0-alpha))
+        w = TFP*(1.0d0-alpha)*KN**alpha
 
 
         maxSS = maxSSrat*Y/sum(Nu)  
         
-        ! Solve the Household Problem
-
-        !CALL HOUSEHOLD
-
-        !!qd = 1.0d0/(1.0d0 + r*(1.d0-tk))
-        !!qw = 1.0d0/(1.0d0 + r)
-        !qd = 1.0d0/(1.0d0 + r*(1.d0-tk))
-        !qw = 1.0d0/(1.0d0 + r)
-        !qwd = qw*frac_ofsh + qd*(1d0-frac_ofsh)
-        
-        get_new_soln = 0
+        ! Solve the Household Problem       
+        get_new_soln = 1
         if (get_new_soln == 1) then
             call tic()
             call SolveHH(save_res=.false.)
@@ -566,13 +504,21 @@ contains
             OPEN(NEWUNIT=iunit, FILE=outDir // "tmp.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
             WRITE (iunit) afun
             write (iunit) lfun
+            write (iunit) cfun
+            write (iunit) offshoring
             write (iunit) afun_ret
+            write (iunit) cfun_ret
+            write (iunit) offshoring_ret
             CLOSE(iunit)
         else
             OPEN(NEWUNIT=iunit, FILE=outdir // "tmp.bin", FORM="unformatted", ACCESS="stream", STATUS="old")
             READ (iunit) afun
             READ (iunit) lfun
+            read (iunit) cfun
+            read (iunit) offshoring
             read (iunit) afun_ret
+            read (iunit) cfun_ret  
+            read (iunit) offshoring_ret
             CLOSE(iunit)    
         end if
         call tic()
@@ -582,11 +528,15 @@ contains
 
 
         ! Compute residuals of functions we want to set to zero
-        fv1=As-K*(1.0+nn)
-        fv2=LabS-N
-        fv3=Govcons-tauc*C-Totinctax
-        fv4=TrB-TrBn
-        fv5=SS-SSn
+        !fv1=As-K*(1.0+nn)
+        !fv2=LabS-N
+        !fv3=Govcons-tauc*C-Totinctax
+        !fv4=TrB-TrBn
+        !fv5=SS-SSn
+        
+        fv1 = As/LabS - KN !K/N
+        fv2 = r*K - Rs
+        fv3 = Govcons + RetS - TaxS
 
         GovconsN = tauc*C + Totinctax
 
@@ -636,9 +586,14 @@ contains
 
 
         ngues1=TFP*alpha*( As/(LabS*(1.0+nn)) )**(alpha-1.0)-delta
-        ngues2=LabS
-        ngues4=TrBn 
-        ngues5=SSn  
+        !ngues2=LabS
+        ngues2 = gues1 - Rs_aux/As
+        !ngues4=TrBn 
+        ngues4=gues4
+        !Govcons = 25.5490651400000d0
+        ngues3 = (YauxS + TaxCS + TaxaboveybS - Govcons - RetS)/AftTaxauxS
+        !ngues5=SSn  
+        ngues5=gues5
 
         ! With Gouveia-Strauss: Updating a2
 
@@ -654,7 +609,7 @@ contains
 
         !call dzbren(taxfn,errabs,errel,low,high,itmax)
         !ngues3=high
-        ngues3=GovconsN
+        !ngues3=GovconsN
 
         if ( (abs(fval1)/Y <tol) .and. (abs(fval2)/ngues2<tol) .and. ( abs(fval3)/Y < tol ) .and. ( abs(fval4) < tol ) .and. ( abs(fval5) < tol ) ) then
             print*,'Convergence Achieved'
@@ -782,7 +737,7 @@ contains
         real(8), optional, intent(out) :: sim_moms_2save(6) ! Optional output
         !real(8), optional, intent(out) :: pi_save(8, 8) ! Optional output
         !real(8), optional, intent(inout):: eta_save(:) ! Optional output
-        real(8) :: guesr,guesN,guesB,guesS
+        real(8) :: guesr,guesN,guesB,guesS, guesrb, guestheta0
         real(8) :: guesGovcons
         real(8) :: pi_small(3,3)
         real(8) :: p_in, p_out, p_ll, p_hh, p_lh, p_hl
@@ -792,34 +747,26 @@ contains
         integer :: i_closest
         real(8) :: tmp
         
-        psi_vals = [0.1d0, 0.5d0, 1.5d0] !0.5d0 !100000d0 ![5.00000d0/5.0d0, 20d0/5.0d0, 50d0/5.0d0]
-        !psi_vals = [110.00000d0/5.0d0, 173.33333d0/5.0d0, 250.33333d0/5.0d0]!*100
-        !psi_vals = [0d0, 110.00000d0/5.0d0, 173.33333d0/5.0d0]!*100
+        psi_vals = [0.1d0, 0.5d0, 1.5d0] 
         bbeta = 0.989d0!0.959d0
         chi = 17.4d0
-
-        !p0(1,:) = 1d0/dble(ns) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
-        !
-        !dist = 1d0
-        !do i = 1, 500
-        !    pstat = matmul(p0, pi)
-        !    dist = sum( (pstat - p0)**2d0 )
-        !    p0 = pstat
-        !end do        
-        !pini = pstat(1,:)
-        !pini(7:8) = 0d0
-        !pini = pini/sum(pini)    
         
-        open(11, file='equilibrium_tmp.txt')
-        read(11, '(f20.8)') guesr
-        read(11, '(f20.8)') guesN
-        read(11, '(f20.8)') guesGovcons
-        read(11, '(f20.8)') guesB
-        read(11, '(f20.8)') guesS
-        close(11)   
+        !open(11, file='equilibrium_tmp.txt')
+        !read(11, '(f20.8)') guesr
+        !read(11, '(f20.8)') guesN
+        !read(11, '(f20.8)') guesGovcons
+        !read(11, '(f20.8)') guesB
+        !read(11, '(f20.8)') guesS
+        !close(11) 
+        
         psi_prob = [1d0/3d0, 1d0/3d0, 1d0/3d0] !1d0 !
         
-        call newton(resid,guesr,guesN,guesGovcons,guesB,guesS)
+        guesr = 0.04d0
+        guesrb = 0d0
+        guestheta0 = 0.940d0
+        guesB = 0d0
+        guesS = 0d0
+        call newton(resid,guesr,guesrb,guestheta0,guesB,guesS)
         
         ![wealth_obs_top_01_001, wealth_obs_top_001, gini_wealth_obs, inc_top_01_001, inc_top_001, gini_inc, wealth_obs_top_001]
         ! wealth top1, top01, top001; income top1, top01, top001 

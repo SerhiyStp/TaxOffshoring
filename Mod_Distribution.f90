@@ -32,7 +32,7 @@ contains
         use svrgp_int
         use toolbox
         use MyLinInterp
-        use Mod_Household, only: afun, lfun, afun_ret
+        use Mod_Household, only: afun, lfun, cfun, afun_ret, cfun_ret, offshoring, offshoring_ret
         use io, only: save_array, read_array
         use ogpf
         !use moments, only: sim_moms, sim_moms_aux, sim_moms_klp
@@ -41,11 +41,12 @@ contains
         
         integer :: ia, itheta, ikappa, iz,  ixi, jj
         integer :: ithetap, ikappap, izp, ixip
-        real(8) :: test
+        real(8) :: test, test2, test3
         integer :: inds(2)
         real(8) :: vals(2)
         real(8) :: TT1, TT2
-        real(8), dimension(Twork+Tret) :: abar
+        real(8) :: rtmp
+        real(8), dimension(Twork+Tret) :: abar, rabar, cbar, totincbar, inctaxbar, rabar_aux, yauxbar, afttaxauxbar, inctaxbar_aboveyb
         real(8), dimension(Twork) :: lbar, labar
         integer :: iunit_lc
         CHARACTER (LEN=*), PARAMETER :: outDir = "tmp/"
@@ -55,10 +56,11 @@ contains
         type(gpf):: gp
         integer :: id_tmp
         logical :: save_res
+        real(8) :: labinc_tmp, totinc_tmp, tax_tmp, yaux_tmp, aftertaxaux_tmp, taxaboveyb_aux
         
         ! Initialize Distribution by Computing Distribution for first Generation
-        get_phi = 0
-        get_phi_ret = 0
+        get_phi = 1
+        get_phi_ret = 1
         
         
         if (get_phi == 1) then
@@ -82,20 +84,8 @@ contains
             
         test = sum(Phi(:,:,:,:,:,:,1))
         
-        !
-        !do tyc=1,nty
-        !    do jj=1,n_ofsh
-        !        do sc=1,ns
-        !            Phi(tyc,sc,1,1,jj)=measty(tyc)*pini(sc)*psi_prob(jj)
-        !        end do
-        !    end do
-        !end do
-        !
-        !test = sum(Phi(1:nty,1:ns,1:na,1,1:n_ofsh))
-        !
-        ! Loop to find distributions for generations 2 to J
+        ! Loop to find distributions for ages 2 to J
         !!call tic
-        !(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork)  
         do jc=2,Twork
             do jj=1,n_ofsh
                 do itheta=1,ntheta
@@ -103,7 +93,6 @@ contains
                         do iz=1,nz
                             do ixi=1,nxi
                                 do ia=1,na
-                                    !afun(ia,jj,itheta,ikappa,iz,ixi,jc)
                                     call basefun(grida(1:na),na,afun(ia,jj,itheta,ikappa,iz,ixi,jc-1),vals,inds)
                                     do izp=1,nz
                                         do ithetap=1,ntheta
@@ -127,15 +116,9 @@ contains
             print *, jc, test
         end do
         
-        !OPEN(NEWUNIT=iunit_phi, FILE=outDir // "Phi.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
-        !WRITE (iunit_phi) Phi
-        !CLOSE(iunit_phi)
         call save_array(Phi, outDir // "Phi.bin")
         
-        else
-            !OPEN(NEWUNIT=iunit_phi, FILE=outDir // "Phi.bin", FORM="unformatted", ACCESS="stream", STATUS="unknown")
-            !read (iunit_phi) Phi
-            !CLOSE(iunit_phi)  
+        else 
             call read_array(Phi, outDir // "Phi.bin")
             test = sum(Phi(:,:,:,:,:,:,Twork))
             print *, jc, test            
@@ -152,7 +135,6 @@ contains
                     do iz = 1, nz
                         do ixi = 1, nxi
                             do ia = 1,na
-                                !(na, n_ofsh, ntheta, nkappa, nz, Tret)
                                 call basefun(grida(1:na),na,afun(ia,jj,itheta,ikappa,iz,ixi,Twork),vals,inds)
                                 test = 0d0
                                 do ithetap=1,ntheta
@@ -213,20 +195,151 @@ contains
         ! Find Stationary Distribution over Asset Holdings
         
         open(newunit=iunit_lc,file='LifeCycle.txt')
+        RetS = 0d0
         do jc = 1, Twork
             abar(jc) = sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc)*afun(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
-            lbar(jc) = sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc)*lfun(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
+            cbar(jc) = sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc)*cfun(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
+            lbar(jc) = 0d0
+            do iz = 1, nz
+                do ixi = 1, nxi
+                    lbar(jc) = lbar(jc) + sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,iz,ixi,jc)*eta(iz)*xi(ixi)*ep(1,jc)*lfun(1:na,1:n_ofsh,1:ntheta,1:nkappa,iz,ixi,jc))
+                end do
+            end do
             labar(jc) = sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc)*lfun(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
-            write(iunit_lc, '(i0, 2f9.6)') jc, abar(jc), labar(jc)
+            rabar(jc) = 0d0
+            rabar_aux(jc) = 0d0
+            do ia = 1, na
+                do itheta = 1, ntheta
+                    do ikappa = 1, nkappa
+                        rtmp = rfunc(grida(ia), thetas(itheta), Kappas(ikappa))
+                        rabar(jc) = rabar(jc) + sum(Phi(ia,1:n_ofsh,itheta,ikappa,1:nz,1:nxi,jc))*rtmp*grida(ia)
+                        rabar_aux(jc) = rabar_aux(jc) + sum(Phi(ia,1:n_ofsh,itheta,ikappa,1:nz,1:nxi,jc))*(rtmp-rbar)*grida(ia)
+                    end do
+                end do
+            end do
+            totincbar(jc) = 0d0
+            inctaxbar(jc) = 0d0
+            yauxbar(jc) = 0d0
+            afttaxauxbar(jc) = 0d0
+            inctaxbar_aboveyb(jc) = 0d0
+            do ia = 1, na
+                do itheta = 1, ntheta
+                    do ikappa = 1, nkappa
+                        rtmp = rfunc(grida(ia), thetas(itheta), Kappas(ikappa))
+                        do iz = 1, nz
+                            do ixi = 1, nxi
+                                do jj = 1, n_ofsh
+                                    labinc_tmp = w*eta(iz)*xi(ixi)*ep(1,jc)*lfun(ia,jj,itheta,ikappa,iz,ixi,jc)
+                                    totinc_tmp = labinc_tmp + rtmp*grida(ia)
+                                    if (offshoring(ia,jj,itheta,ikappa,iz,ixi,jc) < 0.5d0) then
+                                        tax_tmp = tax_income(totinc_tmp)
+                                        yaux_tmp = min(yb_cutoff, totinc_tmp)
+                                        aftertaxaux_tmp = after_tax_income_aux(totinc_tmp)
+                                        taxaboveyb_aux = tau_max*max(0d0, totinc_tmp-yb_cutoff)
+                                    else
+                                        tax_tmp = tax_income(frac_ofsh*totinc_tmp)
+                                        yaux_tmp = min(yb_cutoff, frac_ofsh*totinc_tmp)
+                                        aftertaxaux_tmp = after_tax_income_aux(frac_ofsh*totinc_tmp)
+                                        test2 = (1d0-tau_max)*max(0d0, (frac_ofsh*totinc_tmp-yb_cutoff))
+                                        taxaboveyb_aux = tau_max*max(0d0, (frac_ofsh*totinc_tmp-yb_cutoff))
+                                        !test = taxaboveyb_aux + yaux_tmp - aftertaxaux_tmp
+                                        !if (abs(test - tax_tmp) > 1d-8) then
+                                        !    print *, 'WARNING'
+                                        !    tax_tmp = tax_income(frac_ofsh*totinc_tmp)
+                                        !    yaux_tmp = min(yb_cutoff, frac_ofsh*totinc_tmp)
+                                        !    aftertaxaux_tmp = after_tax_income_aux(frac_ofsh*totinc_tmp)
+                                        !    test2 = (1d0-tau_max)*max(0d0, (frac_ofsh*totinc_tmp-yb_cutoff))
+                                        !    taxaboveyb_aux = tau_max*max(0d0, (frac_ofsh*totinc_tmp-yb_cutoff))
+                                        !    test3 = taxaboveyb_aux + yaux_tmp - aftertaxaux_tmp
+                                        !end if                                         
+                                    end if
+                                    
+                                    !test = taxaboveyb_aux + yaux_tmp - aftertaxaux_tmp
+                                    !if (abs(test - tax_tmp) > 1d-8) then
+                                    !    print *, 'WARNING'
+                                    !end if
+                                    
+                                    totincbar(jc) = totincbar(jc) + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*totinc_tmp
+                                    inctaxbar(jc) = inctaxbar(jc) + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*tax_tmp
+                                    yauxbar(jc) = yauxbar(jc) + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*yaux_tmp
+                                    afttaxauxbar(jc) = afttaxauxbar(jc) + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*aftertaxaux_tmp
+                                    inctaxbar_aboveyb(jc) = inctaxbar_aboveyb(jc) + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*taxaboveyb_aux
+                                end do    
+                            end do
+                        end do
+                    end do
+                end do
+            end do
+            write(iunit_lc, '(i0, 7f9.6)') jc, abar(jc), labar(jc), lbar(jc), rabar(jc), cbar(jc), totincbar(jc), inctaxbar(jc)
         end do
         do jc = 1, Tret
             abar(Twork+jc) = sum(Phi_ret(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc)*afun_ret(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc))
-            write(iunit_lc, '(i0, 2f9.6)') Twork+jc, abar(Twork+jc), 0d0
+            cbar(Twork+jc) = sum(Phi_ret(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc)*cfun_ret(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,jc))
+            rabar(Twork+jc) = 0d0
+            totincbar(Twork+jc) = 0d0
+            inctaxbar(Twork+jc) = 0d0    
+            rabar_aux(Twork+jc) = 0d0
+            yauxbar(Twork+jc) = 0d0
+            afttaxauxbar(Twork+jc) = 0d0
+            inctaxbar_aboveyb(Twork+jc) = 0d0
+            do ia = 1, na
+                do itheta = 1, ntheta
+                    do ikappa = 1, nkappa
+                        rtmp = rfunc(grida(ia), thetas(itheta), Kappas(ikappa))
+                        rabar(Twork+jc) = rabar(Twork+jc) + sum(Phi_ret(ia,1:n_ofsh,itheta,ikappa,1:nz,jc))*rtmp*grida(ia)
+                        rabar_aux(Twork+jc) = rabar_aux(Twork+jc) + sum(Phi_ret(ia,1:n_ofsh,itheta,ikappa,1:nz,jc))*(rtmp-rbar)*grida(ia)
+                        do iz = 1, nz
+                            totinc_tmp = b_ret(iz) + rtmp*grida(ia)
+                            do jj = 1, n_ofsh
+                                if (offshoring_ret(ia, jj, itheta, ikappa, iz) < 0.5d0) then
+                                    tax_tmp = tax_income(totinc_tmp)
+                                    yaux_tmp = min(yb_cutoff, totinc_tmp)
+                                    aftertaxaux_tmp = after_tax_income_aux(totinc_tmp)
+                                    taxaboveyb_aux = tau_max*max(0d0, totinc_tmp-yb_cutoff)
+                                else
+                                    tax_tmp = tax_income(frac_ofsh*totinc_tmp)
+                                    yaux_tmp = min(yb_cutoff, frac_ofsh*totinc_tmp)
+                                    aftertaxaux_tmp = after_tax_income_aux(frac_ofsh*totinc_tmp)
+                                    taxaboveyb_aux = tau_max*max(0d0, (frac_ofsh*totinc_tmp-yb_cutoff))
+                                    !test = taxaboveyb_aux + yaux_tmp - aftertaxaux_tmp
+                                    !if (abs(test - tax_tmp) > 1d-8) then
+                                    !    print *, 'WARNING'
+                                    !end if                                      
+                                end if
+                                
+                                !test = taxaboveyb_aux + yaux_tmp - aftertaxaux_tmp
+                                !if (abs(test - tax_tmp) > 1d-8) then
+                                !    print *, 'WARNING'
+                                !end if                                
+                                
+                                totincbar(Twork+jc) = totincbar(Twork+jc) + Phi_ret(ia,jj,itheta,ikappa,iz,jc)*totinc_tmp
+                                inctaxbar(Twork+jc) = inctaxbar(Twork+jc) + Phi_ret(ia,jj,itheta,ikappa,iz,jc)*tax_tmp
+                                yauxbar(Twork+jc) = yauxbar(Twork+jc) + Phi_ret(ia,jj,itheta,ikappa,iz,jc)*yaux_tmp
+                                afttaxauxbar(Twork+jc) = afttaxauxbar(Twork+jc) + Phi_ret(ia,jj,itheta,ikappa,iz,jc)*aftertaxaux_tmp
+                                inctaxbar_aboveyb(Twork+jc) = inctaxbar_aboveyb(Twork+jc) + Phi_ret(ia,jj,itheta,ikappa,iz,jc)*taxaboveyb_aux
+                                RetS = RetS + Phi_ret(ia,jj,itheta,ikappa,iz,jc)*b_ret(iz)*Nu(Twork+jc)
+                            end do
+                        end do
+                    end do
+                end do
+            end do
+            write(iunit_lc, '(i0, 7f9.6)') Twork+jc, abar(Twork+jc), 0d0, 0d0, rabar(Twork+jc), cbar(Twork+jc), totincbar(Twork+jc), inctaxbar(Twork+jc)
         end do
         close(iunit_lc)
         
         As = sum( Nu(1:J)*abar(1:J) )
+        LabS = sum( Nu(1:Twork)*lbar(1:Twork) )
+        Rs = sum( Nu(1:J)*rabar(1:J) )
+        Rs_aux = sum( Nu(1:J)*rabar_aux(1:J) )
+        TaxS = sum( Nu(1:J)*(inctaxbar(1:J) + tauc*cbar(1:J)) )
+        TaxCS = sum( Nu(1:J)*(tauc*cbar(1:J)) )
+        YauxS = sum( Nu(1:J)*yauxbar(1:J) )
+        AftTaxauxS = sum( Nu(1:J)*afttaxauxbar(1:J) )
+        TaxaboveybS = sum( Nu(1:J)*inctaxbar_aboveyb(1:J) )
         
+        !test = (YauxS - AftTaxauxS)
+        !test2 = TaxaboveybS + test + TaxCS
+        !test3 = TaxS - test2
         
         do ia = 1, na
             do jc = 1, Twork
@@ -238,13 +351,6 @@ contains
             ADis(ia) = sum(help*mu)
         end do
         
-        !do ac=1,na
-        !    do jc=1,J
-        !        help(jc)=sum(Phi(1:nty,1:ns,ac,jc,1:n_ofsh))
-        !    end do
-        !    ADis(ac)= sum( help *mu ) 
-        !end do
-        !
         if ( ADis(na) > 0.0 ) then
             print*,'Enlarge Grid', ADis(na)
         end if
