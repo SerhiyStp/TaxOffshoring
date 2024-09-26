@@ -7,7 +7,13 @@ module Mod_Household
     real(8), dimension(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork) :: Vfun, cfun, lfun, dVfun, afun, offshoring
     real(8) :: xsols(2, na, n_ofsh, ntheta, nkappa, nz, nxi, Twork)
     real(8), dimension(na, ntheta, nkappa, nz, nxi) :: dV_next, V_next
+    
+    !real(8), allocatable, dimension(:,:,:,:,:,:) :: Vfun_ret, cfun_ret, afun_ret, dVfun_ret 
+    !real(8), allocatable, dimension(:,:,:,:,:,:,:) :: Vfun, cfun, lfun, dVfun, afun, offshoring
+    !real(8), allocatable :: xsols(:,:,:,:,:,:,:,:)
+    
     real(8) :: offshoring_ret(na, n_ofsh, ntheta, nkappa, nz)
+    !real(8), allocatable, dimension(:,:,:,:,:) :: offshoring_ret, dV_next, V_next
     real(8) :: pretax_inc(na)
 
     real(8) :: c_mod, lambda_mod, nonlabinc_mod, w_mod, theta_mod, kappa_mod, ap_mod, a_mod, rcur_mod, psi_mod
@@ -15,12 +21,37 @@ module Mod_Household
 
 contains
 
+    !subroutine allocate_policy_fns()
+    !    implicit none
+    !    
+    !    allocate(Vfun(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork))
+    !    allocate(cfun(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork))
+    !    allocate(afun(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork))
+    !    allocate(lfun(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork))
+    !    allocate(dVfun(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork))
+    !    allocate(offshoring(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork))
+    !    
+    !    allocate(Vfun_ret(na, n_ofsh, ntheta, nkappa, nz, Tret))
+    !    allocate(cfun_ret(na, n_ofsh, ntheta, nkappa, nz, Tret))
+    !    allocate(afun_ret(na, n_ofsh, ntheta, nkappa, nz, Tret))
+    !    allocate(dVfun_ret(na, n_ofsh, ntheta, nkappa, nz, Tret))
+    !    
+    !    allocate(xsols(2, na, n_ofsh, ntheta, nkappa, nz, nxi, Twork))
+    !    
+    !    allocate(dV_next(na, ntheta, nkappa, nz, nxi))
+    !    allocate(V_next(na, ntheta, nkappa, nz, nxi))
+    !    
+    !    allocate(offshoring_ret(na, n_ofsh, ntheta, nkappa, nz))
+    !    
+    !end subroutine allocate_policy_fns
+    
+    
     subroutine SolveHH(save_res)
     use params
     use MyLinInterp 
-    use zbren_int
+    !use zbren_int
     use NEQNF_INT
-    use int_tictoc
+    !use int_tictoc
     use root_module
     use focs_mod
     use glob_vars_mod
@@ -32,6 +63,7 @@ contains
         real(8) :: m0
         real(8) :: gridm(na)
         real(8) :: gridm_ret(na, n_ofsh, ntheta, nkappa, nz)
+        !real(8), allocatable :: gridm_ret(:,:,:,:,:)
         real(8) :: mtmp(na), ctmp(na), htmp(na), vtmp(na), atmp(na), aptmp(na)
         real(8) :: ctest(na), vtest(na)
         real(8) :: mdiff(na-1)
@@ -48,8 +80,8 @@ contains
         real(8), allocatable :: CommonVt(:,:), CommonC(:,:), CommonH(:,:), CommonA(:,:)
         integer :: i1, i2
         integer :: idmax(na)
-        real(8) :: test_bc(nty,ns,na,J)
-        real(8) :: test_hrs(nty,ns,na,J)
+        !real(8) :: test_bc(nty,ns,na,J)
+        !real(8) :: test_hrs(nty,ns,na,J)
         real(8) :: max_test_bc
         real(8) :: vals(2), testV, testH, testC, testA
         integer :: inds(2)
@@ -84,6 +116,8 @@ contains
         IPACT = 0 !1
         ISACT = 0
         call erset(IERSVR, IPACT, ISACT)  
+        
+        !allocate(gridm_ret(na, n_ofsh, ntheta, nkappa, nz))
         
         !da_test = 1.0d0/dble(na_test-1)
         !dh_test = 1.0d0/dble(nh_test-1)
@@ -679,6 +713,8 @@ contains
             print *, 'jj = ', jj
             
         end do
+        
+        !deallocate(gridm_ret)
         
         print *, 'HH optimisation done'
     end subroutine SolveHH

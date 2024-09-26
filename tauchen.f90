@@ -75,7 +75,7 @@ Contains
         Integer, Intent(In) :: ZZ
         Real(8), Intent(Out) :: SZ(ZZ),PZEE(ZZ,ZZ),pi(ZZ)
         INTEGER i,j,k
-        Integer, parameter :: draws_number=1000000
+        Integer, parameter :: draws_number=1000 !1000000
         Real(8)  STDW, step, M, temp1,dum
         Real(8), Dimension(draws_number) :: normal_draws
         real(8) :: cdf1, cdf2, tmp

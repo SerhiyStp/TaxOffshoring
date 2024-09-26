@@ -6,9 +6,7 @@ module CK_routines
 contains
     
     subroutine GRID
-
         ! THIS SUBROUTINE DEFINES GRID FOR INDIVIDUAL ASSET HOLDING
-
         use params
         implicit none
 
@@ -33,49 +31,25 @@ contains
     end subroutine GRID
 
     subroutine PREFERENCE
-
         ! THIS SUBROUTINE DEFINES THE PREFERENCE SPECIFICATION
-
         use params
 
         implicit none
 
-        ! SELECT UTILITY FUNCTION 
-        ind_pref = 2
-        ! = 1 NON-SEPARABLE
-        ! = 2 SEPARABLE
-
-        ! SELECT TAX FUNCTION 
-        indext = 2
-        ! = 1 BENCHMARK: Gouveia-Strauss TAX FUNCTION
-        ! = 2 SEPARABLE IN CAPITAL AND LABOR INCOME (defined in Gridtax.f90/Tax3/Martax3)
-
-
-        IF (ind_pref.eq.1) THEN 
-            bbeta	= beta_NS
-            delta	= delta_NS
-            !govcons = govconsNS
-        ELSE
-            bbeta	= beta_S
-            delta	= delta_S
-            !govcons = govconsS
-        ENDIF
+        bbeta	= beta_S
+        delta	= delta_S
 
     end subroutine PREFERENCE   
     
     subroutine DEMOGRAPHICS
-
         ! THIS SUBROUTINE BUILDS GRIDS FOR LABOR EFFICIENCY UNITS, SURVIVAL RATES
         ! AND AGE-DISTRIBUTION
-
         use params
         implicit none
 
         integer::i
 
-
         ! Age-Efficiency Units from Hansen (1993)
-
         ephansen(1)=1.0000
         ephansen(2)=1.0719
         ephansen(3)=1.1438
@@ -240,20 +214,18 @@ contains
             mu(i) = Nu(i)/sum(Nu)
         end do
 
-        open(unit=32,file='measpop.txt')
-        rewind(32)
-        write(32,fmt=*) mu
-        rewind(32)
-        close(32)
+        ! open(unit=32,file='measpop.txt')
+        ! rewind(32)
+        ! write(32,fmt=*) mu
+        ! rewind(32)
+        ! close(32)
 
         topop=sum(Nu)
 
     end subroutine DEMOGRAPHICS    
     
     subroutine LABOR
-
         ! THIS SUBROUTINE DEFINES THE STOCHASTIC PROCESS FOR LABOR PRODUCTIVITY
-
         use params
         use TAUCHEN_mod, only: tauchen_pareto
 
@@ -282,11 +254,9 @@ contains
         !yb_cutoff = ( theta0*(1.0d0-theta1)/(1.0d0-tau_max) )**(1d0/theta1)
 
         if (nz==1) then
-        eta=1.0d0
-        pi=1.0d0
-        pini=1.0d0
-        !go to 200
-        !else
+            eta=1.0d0
+            pi=1.0d0
+            pini=1.0d0
         end if
 
 
@@ -308,18 +278,6 @@ contains
         theta(2)=rho
         theta(3)=(sigmaeps*(1.0-rho**2)**(1/2))**2
 
-        !call markov
-        !pistat=mstae(1:ns)
-        !eta=mstates(1:ns)
-        !pi=mprobs(1:ns,1:ns)
-        !
-        !!print *, sum(pistat)
-        !!print *, sum(pi(1,:))
-        !
-        !
-        !eta=exp(eta)
-        !eta=eta/(sum(pistat*eta))    ! normalization of e
-        !						     ! e are ordered e1<e2...<en        
         pareto_cutoff = 0.9d0
         m_tauch = 2.7d0  
         alpha_pareto = 1.9d0
@@ -334,8 +292,6 @@ contains
             if (dist < 1d-12) exit
         end do             
         pini = p0(1,:)
-        
-        
         
         xi = exp([-sig_xi, 0.0d0, sig_xi]) ! exp(0.0d0) !
         pi_xi = [0.25d0, 0.5d0, 0.25d0] !1d0 !
@@ -449,6 +405,7 @@ contains
     subroutine initialize()
         use moments
         use Mod_Distribution, only: init_distr
+        !use Mod_Household, only: allocate_policy_fns
 
         call GRID
         call PREFERENCE
@@ -457,6 +414,8 @@ contains
         call returns_heterogeneity()
         call set_moments()
         call init_distr()
+        
+        !call allocate_policy_fns()
         
     end subroutine initialize    
     
@@ -492,7 +451,7 @@ contains
         w = TFP*(1.0d0-alpha)*KN**alpha
 
 
-        maxSS = maxSSrat*Y/sum(Nu)  
+        !maxSS = maxSSrat*Y/sum(Nu)  
         
         ! Solve the Household Problem       
         get_new_soln = 1
@@ -535,8 +494,12 @@ contains
         !fv5=SS-SSn
         
         fv1 = As/LabS - KN !K/N
+        K = KN*LabS
         fv2 = r*K - Rs
-        fv3 = Govcons + RetS - TaxS
+        fv3 = Govcons + RetS - TaxS 
+        fv4 = TrB-TrBn
+        
+        !print '(4(a7,f12.7))', 'fv1 = ', fv1, ' fv2 = ', fv2, ' fv3 = ', fv3, ' fv4 = ', fv4
 
         GovconsN = tauc*C + Totinctax
 
@@ -566,6 +529,7 @@ contains
         real(prec),dimension(3,3)::deltamat,deltainv
         real(prec)::x,xguess,fnorm,epss,etas,high,low
         integer::nroot,info,itmax
+        real(8) :: d1, d2, d3, d4, d5
         
         interface
             subroutine fun(x1,x2,x3,x4,x5,fv1,fv2,fv3,fv4,fv5)
@@ -578,86 +542,88 @@ contains
 
         do i=1,maxit
 
-        print*,'____________________________________________________________________'
-        print*,"Newton iteration ",i
+            print*,'____________________________________________________________________'
+            print*,"Newton iteration ",i
+
+            call fun(gues1,gues2,gues3,gues4,gues5,fval1,fval2,fval3,fval4,fval5)
+
+            ngues1=TFP*alpha*( As/(LabS*(1.0+nn)) )**(alpha-1.0)-delta
+            !ngues2=LabS
+            ngues2 = gues1 - Rs_aux/As 
+            !ngues4=gues4
+            !Govcons = 25.5490651400000d0
+            ngues3 = (YauxS + TaxCS + TaxaboveybS + TaxE - Govcons - RetS)/AftTaxauxS
+            ngues4=TrBn 
+            !ngues5=SSn  
+            ngues5=gues5
+
+            !d1 = abs(ngues1-gues1)
+            !d2 = abs(ngues2-gues2)
+            !d3 = abs(ngues3-gues3)
+            !d4 = abs(ngues4-gues4)
+            !print '(5(a7,f12.7))', 'd1 = ', d1, ' d2 = ', d2, ' d3 = ', d3, ' d4 = ', d4
+
+            ! With Gouveia-Strauss: Updating a2
+
+            errel	=0.000000001
+            errabs	=0.0000000001
+            epss	=0.1
+            etas	=1.0
+            nroot	=1
+            itmax	=1000
+            xguess	=gues3
+            low		=0.00000001
+            high	=10.0**20
+
+            !call dzbren(taxfn,errabs,errel,low,high,itmax)
+            !ngues3=high
+            !ngues3=GovconsN
+
+            if ( (abs(fval1)/Y <tol) .and. (abs(fval2)/ngues2<tol) .and. ( abs(fval3)/Y < tol ) .and. ( abs(fval4) < tol ) .and. ( abs(fval5) < tol ) ) then
+                print*,'Convergence Achieved'
+                exit
+            endif
 
 
-        call fun(gues1,gues2,gues3,gues4,gues5,fval1,fval2,fval3,fval4,fval5)
+            print '(a)',' ' 
+            print '(a)', "      <variable>       <old guess>      <new guess>     <error>" 
+            print '(a20,2f15.6,f15.9)', " (1) interest rate  ", gues1, ngues1, fval1 !/Y
+            print '(a20,2f15.6,f15.9)', " (2) rbar           ", gues2, ngues2, fval2
+            print '(a20,2f15.6,f15.9)', " (3) theta0         ", gues3, ngues3, fval3
+            print '(a20,2f15.6,f15.9)', " (4) Tr             ", gues4, ngues4, fval4
+            !print '(a,2f15.6,f15.11)', "  (2) labor supply  ",gues2,ngues2,fval2/ngues2
+            !!print '(a,2f15.6,f15.11)', "  (3) parameter a2  ",gues3,ngues3,fval3/Y
+            !print '(a,2f15.6,f15.11)', "  (3) Govcons       ",gues3,ngues3,fval3/Y
+            !print '(a,2f15.6,f15.11)', "  (4) bequest TrB   ",gues4,ngues4,fval4
+            !print '(a,2f15.6,f15.11)', "  (5) SS benefit SS ",gues5,ngues5,fval5
 
 
-        ngues1=TFP*alpha*( As/(LabS*(1.0+nn)) )**(alpha-1.0)-delta
-        !ngues2=LabS
-        ngues2 = gues1 - Rs_aux/As
-        !ngues4=TrBn 
-        ngues4=gues4
-        !Govcons = 25.5490651400000d0
-        ngues3 = (YauxS + TaxCS + TaxaboveybS - Govcons - RetS)/AftTaxauxS
-        !ngues5=SSn  
-        ngues5=gues5
+            !PRINT '(a)',' ' 
+            !print '(a,f15.10)', 'Excess Dem. Goods Market ',exdem/Y
+            !print '(a,f15.10)', 'Total Shares in GDP      ',(C+Govcons+As*(delta+nn)/(1.0+nn) )/Y
 
-        ! With Gouveia-Strauss: Updating a2
+            !print*,' ' 
+            !!if (indext.eq.1) then
+            !print*, "CALIBRATION TARGETS ARE: K/Y=2.7 I/Y=0.255 G/Y=0.17 h=1/3"
+            !print '(a,f10.7,a,f10.7)', "  K/Y=", As/((1.0+nn)*Y),"  I/Y=", (delta+nn)*As/((1.0+nn)*Y)
+            !print '(a,f10.7,a,f10.7)', "  G/Y=",Govcons/Y,       "  C/Y=", C/Y
+            !print '(a,f10.7)', "  Avg hrs wrkd= ", hours
+            !print '(a,f10.7)', "  Avg tax rate= ", Totinctax/(Y-delta*As/(1.0+nn))
+            !endif
 
-        errel	=0.000000001
-        errabs	=0.0000000001
-        epss	=0.1
-        etas	=1.0
-        nroot	=1
-        itmax	=1000
-        xguess	=gues3
-        low		=0.00000001
-        high	=10.0**20
+            gues1=(1.0-adj)*gues1+adj*ngues1
+            gues2=(1.0-adj)*gues2+adj*ngues2
+            gues3=(1.0-adj)*gues3+adj*ngues3
+            gues4=(1.0-adj)*gues4+adj*ngues4
+            gues5=(1.0-adj)*gues5+adj*ngues5
 
-        !call dzbren(taxfn,errabs,errel,low,high,itmax)
-        !ngues3=high
-        !ngues3=GovconsN
-
-        if ( (abs(fval1)/Y <tol) .and. (abs(fval2)/ngues2<tol) .and. ( abs(fval3)/Y < tol ) .and. ( abs(fval4) < tol ) .and. ( abs(fval5) < tol ) ) then
-            print*,'Convergence Achieved'
-            exit
-        endif
-
-
-        PRINT '(a)',' ' 
-        print '(a)',               "      <variable>       <old guess>    <new guess>   <error>" 
-        print '(a,2f15.6,f15.11)', "  (1) interest rate ",gues1,ngues1,fval1/Y
-        print '(a,2f15.6,f15.11)', "  (2) labor supply  ",gues2,ngues2,fval2/ngues2
-        !print '(a,2f15.6,f15.11)', "  (3) parameter a2  ",gues3,ngues3,fval3/Y
-        print '(a,2f15.6,f15.11)', "  (3) Govcons       ",gues3,ngues3,fval3/Y
-        print '(a,2f15.6,f15.11)', "  (4) bequest TrB   ",gues4,ngues4,fval4
-        print '(a,2f15.6,f15.11)', "  (5) SS benefit SS ",gues5,ngues5,fval5
-
-
-        PRINT '(a)',' ' 
-        !if (indext.eq.1) then 
-        !	print '(a,3f10.4,f15.5)', 'Tax System [a0,a1,a2]',a0(a0c),a1(a1c),ngues3
-        !else
-        !	print '(a,3f10.4,f15.5)', 'Tax System [tauk,a0,a1,a2]',tauk(taukc),a0(a0c),a1(a1c),ngues3
-        !endif
-        print '(a,f15.10)', 'Excess Dem. Goods Market ',exdem/Y
-        print '(a,f15.10)', 'Total Shares in GDP      ',(C+Govcons+As*(delta+nn)/(1.0+nn) )/Y
-
-        print*,' ' 
-        !if (indext.eq.1) then
-        print*, "CALIBRATION TARGETS ARE: K/Y=2.7 I/Y=0.255 G/Y=0.17 h=1/3"
-        print '(a,f10.7,a,f10.7)', "  K/Y=", As/((1.0+nn)*Y),"  I/Y=", (delta+nn)*As/((1.0+nn)*Y)
-        print '(a,f10.7,a,f10.7)', "  G/Y=",Govcons/Y,       "  C/Y=", C/Y
-        print '(a,f10.7)', "  Avg hrs wrkd= ", hours
-        print '(a,f10.7)', "  Avg tax rate= ", Totinctax/(Y-delta*As/(1.0+nn))
-        !endif
-
-        gues1=(1.0-adj)*gues1+adj*ngues1
-        gues2=(1.0-adj)*gues2+adj*ngues2
-        gues3=(1.0-adj)*gues3+adj*ngues3
-        gues4=(1.0-adj)*gues4+adj*ngues4
-        gues5=(1.0-adj)*gues5+adj*ngues5
-
-        open(11, file='equilibrium_tmp.txt')
-        write(11, '(f20.8)') gues1
-        write(11, '(f20.8)') gues2
-        write(11, '(f20.8)') gues3
-        write(11, '(f20.8)') gues4
-        write(11, '(f20.8)') gues5
-        close(11)
+            ! open(11, file='equilibrium_tmp.txt')
+            ! write(11, '(f20.8)') gues1
+            ! write(11, '(f20.8)') gues2
+            ! write(11, '(f20.8)') gues3
+            ! write(11, '(f20.8)') gues4
+            ! write(11, '(f20.8)') gues5
+            ! close(11)
 
         end do
 
@@ -795,23 +761,7 @@ contains
         integer :: i, j_value, unit
 
         x0 = [0.0004d0, 0.0042d0, 0.9690d0, 0.9424d0, 137.36d0, 1349.46d0]
-        !p_in = min( max(x(1), 0d0), 1d0) !0.002d0 ! x(1)
-        !p_out = min( max(x(2), 0d0), 1d0) !0.005d0 ! x(2)
-        !p_ll = min( max(x(3), 0d0), 1d0) !0.968018785002481d0 ! x(3)
-        !plh  = min( max(x(3), 0d0), 1d0)
-        !p_hh = min( max(x(4), 0d0), 1d0) !0.946093025947746d0 ! x(4)
-        
-        x0(5) = x0(5)*1d0
-        x0(6) = x0(6)*6d0
-        x0(1) = x0(1)/1d0
-        x0(2) = x0(2)*5d0
-        x0(3) = 0.0210d0/20d0! /4d0
-
-
-        x0(4) = 0.7424d0
-        
         call initialize()
-
         call klp(x0, fmom, nx, nm, sim_moms_2save)  
 
         ! Get the filename from the user

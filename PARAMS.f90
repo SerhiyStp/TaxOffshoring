@@ -178,7 +178,10 @@ MODULE PARAMS
     real(8) :: theta0
     real(8),parameter:: theta1=0.183d0 !0.137d0
     real(8),parameter:: tau_max = 0.396d0
-    real(8):: yb_cutoff
+    real(8) :: yb_cutoff
+    
+    real(8), parameter :: tau_estate = 0.1d0
+    real(8), parameter :: a_estate = 0.5d0
 
 
     real(prec)::maxa0,maxa1,mina0,mina1
@@ -223,7 +226,7 @@ MODULE PARAMS
 
     ! Prices of capital and labor; labor supply and capital stock, and other 
     real(prec):: r,w,N,LabS,K,As,Astart,Y,C,Tr,exdem,Totinctax,hours,Transagg,stdle,stdleini
-    real(8) :: Rs, TaxS, RetS, Rs_aux, YauxS, AftTaxauxS, TaxCS, TaxaboveybS
+    real(8) :: Rs, TaxS, RetS, Rs_aux, YauxS, AftTaxauxS, TaxCS, TaxaboveybS, TaxE
     real(8) :: rbar
 
 
