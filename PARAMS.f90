@@ -27,7 +27,7 @@ MODULE PARAMS
     real(8) :: a_cutoff(n_ofsh)
 
 
-
+    ! Grids
     !integer,parameter:: ns=7, na=501, nl=66, nty=2, maxit=10000  ! Size of grids
     !integer,parameter:: ns=8, na=501, nl=66, nty=1, maxit=10000  ! Size of grids
     !integer,parameter:: ns=8, na=3001, nl=1, nty=1, maxit=10000  ! Size of grids
@@ -256,6 +256,336 @@ MODULE PARAMS
     !===========================================================================
 
 CONTAINS
+    
+    
+    subroutine SetParams()
+        !===========================================================================
+        ! This subroutine sets the parameters for the model
+        !===========================================================================
+        call GRID
+        call PREFERENCE
+        call DEMOGRAPHICS
+        call LABOR
+        call RETURNS()
+        
+        ! Offshoring
+        psi_vals = [0.1d0, 0.5d0, 1.5d0] 
+        psi_prob = [1d0/3d0, 1d0/3d0, 1d0/3d0]
+        
+    end subroutine SetParams
+    
+    
+    subroutine RETURNS()
+        !use params
+        real(8), parameter :: pi_theta_hl = 0.5d0
+        real(8), parameter :: pi_theta_lh = 0.2d0
+        real(8) :: p0(1, ntheta), p1(1, ntheta)
+        real(8) :: dist
+        integer :: i
+        
+        pi_theta(1,:) = [1.0d0 - pi_theta_hl, pi_theta_hl]
+        pi_theta(2,:) = [pi_theta_lh, 1.0d0 - pi_theta_lh]
+        
+        p0(1,:) = 1d0/dble(ntheta) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
+
+        dist = 1d0
+        do i = 1, 500
+            p1 = matmul(p0, pi_theta)
+            dist = sum( (p1 - p0)**2d0 )
+            p0 = p1
+            if (dist < 1d-12) exit
+        end do             
+        pi_theta_stat = p0(1,:)
+        !print *, sum(pi_theta_stat)
+        
+        !pi_theta = 1d0
+        thetas = [1d0, 0.00d0] !1d0 ![1d0, 0d0]
+        
+        Kappas = [-sig_kappa, 0.0d0, +sig_kappa] ![0d0] 
+        Kappas = exp(Kappas)
+        pi_kappa = [0.25d0, 0.5d0, 0.25d0] !1d0 !
+        rbar = 0d0
+        
+    end subroutine RETURNS   
+    
+    
+    subroutine LABOR
+        ! THIS SUBROUTINE DEFINES THE STOCHASTIC PROCESS FOR LABOR PRODUCTIVITY
+        !use params
+        use TAUCHEN_mod, only: tauchen_pareto
+
+        implicit none
+        
+        ! endowment process parameters
+        integer::i
+        real(8)::p0(1,nz), p1(1,nz) 
+        real(8)::dist
+        
+        real(8) :: m_tauch, pareto_cutoff
+        real(8) :: alpha_pareto        
+
+
+        !yb_cutoff = ( theta0*(1.0d0-theta1)/(1.0d0-tau_max) )**(1d0/theta1)
+
+        if (nz==1) then
+            eta=1.0d0
+            pi=1.0d0
+            pini=1.0d0
+        end if
+        
+        pareto_cutoff = 0.9d0
+        m_tauch = 2.7d0  
+        alpha_pareto = 1.9d0
+        call tauchen_pareto(sig_z, rho_z, nz, m_tauch, pareto_cutoff, alpha_pareto, eta, pi)
+        p0(1,:) = 1d0/dble(nz) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
+
+        dist = 1d0
+        do i = 1, 500
+            p1 = matmul(p0, pi)
+            dist = sum( (p1 - p0)**2d0 )
+            p0 = p1
+            if (dist < 1d-12) exit
+        end do             
+        pini = p0(1,:)
+        
+        xi = exp([-sig_xi, 0.0d0, sig_xi]) ! exp(0.0d0) !
+        pi_xi = [0.25d0, 0.5d0, 0.25d0] !1d0 !
+
+        ! Determine the initial Distribution of Labor Productivities
+
+        ! A: Fixed Effects: sigma**2_alpha=0.247
+        !ep(1,1:J)=exp(-sqrt(sigma2alpha))*ephansen(1:J)
+        !ep(2,1:J)=exp(sqrt(sigma2alpha))*ephansen(1:J)
+        
+        ep(1,1:J)=ephansen(1:J)
+        
+        b_ret = 0.4d0*eta
+
+    end subroutine LABOR     
+    
+    
+    
+    subroutine GRID
+        ! THIS SUBROUTINE DEFINES GRID FOR INDIVIDUAL ASSET HOLDING
+        !use params
+        implicit none
+
+        !real(prec),parameter::scale=75.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=105.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=1800.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=2000.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=7500.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=505000.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=400000.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=6000.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=40000.0,curv=1.1 !2.5
+        !real(prec),parameter::scale=2000.0,curv=1.2
+        real(prec),parameter::scale=150.0,curv=1.0 !2
+        real(prec)::step
+
+        grida(1)=blimit
+        do ac=2,na
+            grida(ac)=grida(1)+scale*((ac-1.0)/(na-1.0))**curv
+        end do
+
+    end subroutine GRID 
+    
+    subroutine PREFERENCE
+        ! THIS SUBROUTINE DEFINES THE PREFERENCE SPECIFICATION
+        !use params
+
+        implicit none
+
+        !bbeta	= beta_S
+        delta	= delta_S
+        
+        bbeta = 0.989d0!0.959d0
+        chi = 17.4d0        
+
+    end subroutine PREFERENCE     
+    
+    subroutine DEMOGRAPHICS
+        ! THIS SUBROUTINE BUILDS GRIDS FOR LABOR EFFICIENCY UNITS, SURVIVAL RATES
+        ! AND AGE-DISTRIBUTION
+        !use params
+        implicit none
+
+        integer::i
+
+        ! Age-Efficiency Units from Hansen (1993)
+        ephansen(1)=1.0000
+        ephansen(2)=1.0719
+        ephansen(3)=1.1438
+        ephansen(4)=1.2158
+        ephansen(5)=1.2842
+        ephansen(6)=1.3527
+        ephansen(7)=1.4212
+        ephansen(8)=1.4897
+        ephansen(9)=1.5582
+        ephansen(10)=1.6267
+        ephansen(11)=1.6952
+        ephansen(12)=1.7217
+        ephansen(13)=1.7438
+        ephansen(14)=1.7748
+        ephansen(15)=1.8014
+        ephansen(16)=1.8279
+        ephansen(17)=1.8545
+        ephansen(18)=1.8810
+        ephansen(19)=1.9075
+        ephansen(20)=1.9341
+        ephansen(21)=1.9606
+        ephansen(22)=1.9623
+        ephansen(23)=1.9640
+        ephansen(24)=1.9658
+        ephansen(25)=1.9675
+        ephansen(26)=1.9692
+        ephansen(27)=1.9709
+        ephansen(28)=1.9726
+        ephansen(29)=1.9743
+        ephansen(30)=1.9760
+        ephansen(31)=1.9777
+        ephansen(32)=1.9700
+        ephansen(33)=1.9623
+        ephansen(34)=1.9546
+        ephansen(35)=1.9469
+        ephansen(36)=1.9392
+        ephansen(37)=1.9315
+        ephansen(38)=1.9238
+        ephansen(39)=1.9161
+        ephansen(40)=1.9084
+        ephansen(41)=1.9007
+        ephansen(42)=1.8354
+        ephansen(43)=1.7701
+        ephansen(44)=1.7048 
+        ephansen(45)=1.6396
+
+        do i=jr,J
+            ephansen(i)=0.0
+        end do         
+
+
+        do tyc=1,nty
+            ep(tyc,1:J)=ephansen(1:J)
+        end do
+
+        measty(1:nty)=1.0/nty
+
+        ! Population Numbers from Bell and Miller (2002)
+
+        pop(1)=	197316
+        pop(2)=	197141
+        pop(3)=	196959
+        pop(4)=	196770
+        pop(5)=	196580
+        pop(6)=	196392
+        pop(7)=	196205
+        pop(8)=	196019
+        pop(9)=	195830
+        pop(10)=195634
+        pop(11)=195429
+        pop(12)=195211
+        pop(13)=194982
+        pop(14)=194739
+        pop(15)=194482
+        pop(16)=194211
+        pop(17)=193924
+        pop(18)=193619
+        pop(19)=193294
+        pop(20)=192945
+        pop(21)=192571
+        pop(22)=192169
+        pop(23)=191736
+        pop(24)=191271
+        pop(25)=190774
+        pop(26)=190243
+        pop(27)=189673
+        pop(28)=189060
+        pop(29)=188402
+        pop(30)=187699
+        pop(31)=186944
+        pop(32)=186133
+        pop(33)=185258
+        pop(34)=184313
+        pop(35)=183290
+        pop(36)=182181
+        pop(37)=180976
+        pop(38)=179665
+        pop(39)=178238
+        pop(40)=176689
+        pop(41)=175009
+        pop(42)=173187
+        pop(43)=171214
+        pop(44)=169064
+        pop(45)=166714
+        pop(46)=164147
+        pop(47)=161343
+        pop(48)=158304
+        pop(49)=155048
+        pop(50)=151604
+        pop(51)=147990
+        pop(52)=144189
+        pop(53)=140180
+        pop(54)=135960
+        pop(55)=131532
+        pop(56)=126888
+        pop(57)=122012
+        pop(58)=116888
+        pop(59)=111506
+        pop(60)=105861
+        pop(61)=99957
+        pop(62)=93806
+        pop(63)=87434
+        pop(64)=80882
+        pop(65)=74204
+        pop(66)=67462
+        pop(67)=60721
+        pop(68)=54053
+        pop(69)=47533
+        pop(70)=41241
+        pop(71)=35259
+        pop(72)=29663
+        pop(73)=24522
+        pop(74)=19890
+        pop(75)=15805
+        pop(76)=12284
+        pop(77)=9331
+        pop(78)=6924
+        pop(79)=5016
+        pop(80)=3550
+        pop(81)=2454
+
+
+        ! Survival probabilities: surv(i)=prob(alive in i+1|alive in i)
+
+        do i = 1,J-1
+            surv(i) = pop(i+1)/pop(i)
+        end do
+
+        surv(J) = 0.0
+
+        ! Number of Agents in population
+
+        Nu(1) = 1.0
+
+        do i = 2,J
+            Nu(i) = surv(i-1)*Nu(i-1)/(1.0+nn)	  
+        end do
+
+        ! Fraction of agents in population
+
+        do i = 1,J
+            mu(i) = Nu(i)/sum(Nu)
+        end do
+
+        ! open(unit=32,file='measpop.txt')
+        ! rewind(32)
+        ! write(32,fmt=*) mu
+        ! rewind(32)
+        ! close(32)
+
+        topop=sum(Nu)
+
+    end subroutine DEMOGRAPHICS !    
     
     
     function tax_income(y) result(res)
