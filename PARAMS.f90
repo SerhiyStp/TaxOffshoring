@@ -168,12 +168,12 @@ MODULE PARAMS
 
 
     ! Tax code
-    real(prec):: a2
-    real(prec),allocatable:: a0(:)
-    real(prec),allocatable:: a1(:)
-    real(prec),allocatable:: tauk(:)
+    !real(prec):: a2
+    !real(prec),allocatable:: a0(:)
+    !real(prec),allocatable:: a1(:)
+    !real(prec),allocatable:: tauk(:)
 
-    real(8),parameter:: tk=0.283d0
+    !real(8),parameter:: tk=0.283d0
     !real(8),parameter:: theta0=0.940d0 !0.917d0
     real(8) :: theta0
     real(8),parameter:: theta1=0.183d0 !0.137d0
@@ -197,26 +197,9 @@ MODULE PARAMS
     real(prec)::socwelf2,optr,optw,optN,optK
     real(prec),dimension(5):: opttax
     real(prec),dimension(nty,ns,na,J,n_ofsh)::optvfun,optcfun,optlfun,optafun
-    !real(prec),dimension(nty,ns,na,J,n_ofsh)::optafun
-
-
-    !! Distribution over state space
-    !real(prec),dimension(nty,ns,na,J,n_ofsh)::phi,phitot,optphi
-    !real(8) :: Phi_work(nty,ns,na,Jr-1,n_ofsh)
-
-
-    ! Household value and policy functions
-    !real(prec),dimension(nty,ns,na,J,n_ofsh)::afun
-    !real(prec),dimension(nty,ns,na,J,n_ofsh)::Vfun,cfun,lfun,vpfun,afun
-    
-
 
     ! Asset distribution
     real(prec),dimension(na):: Adis
-
-
-    ! Average variables by age
-    !real(prec),dimension(J):: abar,lbar,labar,cbar,astartbar,meanearn,logmean,varlogearn
 
 
     ! Average variables by age and type
@@ -225,20 +208,25 @@ MODULE PARAMS
 
 
     ! Prices of capital and labor; labor supply and capital stock, and other 
-    real(prec):: r,w,N,LabS,K,As,Astart,Y,C,Tr,exdem,Totinctax,hours,Transagg,stdle,stdleini
-    real(8) :: Rs, TaxS, RetS, Rs_aux, YauxS, AftTaxauxS, TaxCS, TaxaboveybS, TaxE
+    real(prec):: r, w, N, LabS, K, As, Astart, Y, C, Tr, exdem, Totinctax, hours, Transagg, stdle, stdleini
+    real(8) :: YauxS, AftTaxauxS, TaxCS, TaxE
     real(8) :: rbar
+    real(8) :: AAgg, RetAgg
+    real(8) :: RAgg, RauxAgg, LAgg, CAgg
+    real(8) :: TaxInc, TaxC, TaxTot
+    real(8) :: TaxIncAboveYb, YfBelowYb, DBelowYb
+    real(8) :: TotOffshCost
 
 
     ! Social security taxes and benefits
-    real(prec),parameter:: taup=0.124,maxSSrat=87000.0/37748.0
+    !real(prec),parameter:: taup=0.124,maxSSrat=87000.0/37748.0
 
-    real(prec):: maxSS
-    real(prec):: SS,SSn,TotSStax
+    !real(prec):: maxSS
+    !real(prec):: SS,SSn,TotSStax
 
 
     ! Bequest 
-    real(prec):: TrB,TrBn,Trstart
+    real(prec):: TrB,TrBn !,Trstart
 
 
     ! Welfare measures
@@ -248,7 +236,7 @@ MODULE PARAMS
 
     
 
-    integer :: jj_glob
+    !integer :: jj_glob
 
 
     !===========================================================================
@@ -747,120 +735,120 @@ CONTAINS
 
 
     !==========================================================================
-    function Tax2(b0,b1,b2,ear)
-        !==========================================================================
-
-        ! Tax function in Gouveia & Strauss (National Tax Journal, 1994)
-
-        implicit none
-
-        real(prec):: Tax2
-        real(prec),intent(in):: b0,b1,b2,ear
-
-        Tax2=0.0
-
-        if ( b1 >= 0.001 ) then
-            if ( ear > 0.0 ) then
-                Tax2=b0*( ear - ( ear**(-b1)+b2 )**(-1.0/b1) )
-            endif
-        endif
-
-        if (b1 < 0.001 ) then
-            if ( ear > 0.0 ) then
-                Tax2=b0*ear +b2
-            endif
-        endif
-
-    end function Tax2
+    !function Tax2(b0,b1,b2,ear)
+    !    !==========================================================================
+    !
+    !    ! Tax function in Gouveia & Strauss (National Tax Journal, 1994)
+    !
+    !    implicit none
+    !
+    !    real(prec):: Tax2
+    !    real(prec),intent(in):: b0,b1,b2,ear
+    !
+    !    Tax2=0.0
+    !
+    !    if ( b1 >= 0.001 ) then
+    !        if ( ear > 0.0 ) then
+    !            Tax2=b0*( ear - ( ear**(-b1)+b2 )**(-1.0/b1) )
+    !        endif
+    !    endif
+    !
+    !    if (b1 < 0.001 ) then
+    !        if ( ear > 0.0 ) then
+    !            Tax2=b0*ear +b2
+    !        endif
+    !    endif
+    !
+    !end function Tax2
     !==========================================================================
 
 
     !==========================================================================
-    function Tax3(l0,l1,l2,ca0,lear,caear)
-        !==========================================================================
-
-        real(prec):: Tax3
-        real(prec),intent(in):: l0,l1,l2,ca0,lear,caear
-
-
-        Tax3=0.0
-
-        ! Labor Income Tax 
-
-        if ( l1 >= 0.000001 ) then
-            if ( lear >= 0.00000001 ) then
-                Tax3 = l0*( lear - ( lear**(-l1)+l2 )**(-1.0/l1) )
-            endif
-        endif
-        if (l1 < 0.000001 ) then
-            if ( lear >= 0.00000001 ) then
-                Tax3 = l0*lear+l2
-            endif
-        endif
-
-
-        ! Capital Income Tax
-
-        Tax3 = Tax3 + ca0*caear
-
-    end function Tax3
+    !function Tax3(l0,l1,l2,ca0,lear,caear)
+    !    !==========================================================================
+    !
+    !    real(prec):: Tax3
+    !    real(prec),intent(in):: l0,l1,l2,ca0,lear,caear
+    !
+    !
+    !    Tax3=0.0
+    !
+    !    ! Labor Income Tax 
+    !
+    !    if ( l1 >= 0.000001 ) then
+    !        if ( lear >= 0.00000001 ) then
+    !            Tax3 = l0*( lear - ( lear**(-l1)+l2 )**(-1.0/l1) )
+    !        endif
+    !    endif
+    !    if (l1 < 0.000001 ) then
+    !        if ( lear >= 0.00000001 ) then
+    !            Tax3 = l0*lear+l2
+    !        endif
+    !    endif
+    !
+    !
+    !    ! Capital Income Tax
+    !
+    !    Tax3 = Tax3 + ca0*caear
+    !
+    !end function Tax3
     !==========================================================================
 
 
     !==========================================================================
-    function Tax4(earncap,lear,jj)
-        !==========================================================================
-        real(8):: Tax4
-        real(8):: ap, lear, earncap !, caear
-        integer:: jj
-
-        Tax4 = lear - theta0*min(yb_cutoff,lear)**(1.0d0-theta1) - (1.0d0-tau_max)*max(0d0,lear-yb_cutoff)
-        Tax4 = Tax4 + tk*earncap
-
-    end function Tax4
+    !function Tax4(earncap,lear,jj)
+    !    !==========================================================================
+    !    real(8):: Tax4
+    !    real(8):: ap, lear, earncap !, caear
+    !    integer:: jj
+    !
+    !    Tax4 = lear - theta0*min(yb_cutoff,lear)**(1.0d0-theta1) - (1.0d0-tau_max)*max(0d0,lear-yb_cutoff)
+    !    Tax4 = Tax4 + tk*earncap
+    !
+    !end function Tax4
     !==========================================================================
 
     !==========================================================================
-    function MarTax2(b0,b1,b2,capear)
-        !==========================================================================
-
-        ! Marginal Taxes for capital
-        ! Tax function in Gouveia & Strauss (National Tax Journal, 1994)
-
-        implicit none
-
-        real(prec):: MarTax2
-        real(prec),intent(in):: b0,b1,b2,capear
-
-        MarTax2=0.0
-
-        if ( b1 >= 0.001 ) then
-            if ( capear > 0.0 ) then
-                MarTax2=b0*( 1.0 - (1.0+b2*capear**b1)**(-1.0/b1 - 1.0) )
-            endif
-        endif
-        if (b1 < 0.001 ) then
-            if ( capear > 0.0 ) then
-                MarTax2=b0
-            endif
-        endif
-
-    end function MarTax2
+    !function MarTax2(b0,b1,b2,capear)
+    !    !==========================================================================
+    !
+    !    ! Marginal Taxes for capital
+    !    ! Tax function in Gouveia & Strauss (National Tax Journal, 1994)
+    !
+    !    implicit none
+    !
+    !    real(prec):: MarTax2
+    !    real(prec),intent(in):: b0,b1,b2,capear
+    !
+    !    MarTax2=0.0
+    !
+    !    if ( b1 >= 0.001 ) then
+    !        if ( capear > 0.0 ) then
+    !            MarTax2=b0*( 1.0 - (1.0+b2*capear**b1)**(-1.0/b1 - 1.0) )
+    !        endif
+    !    endif
+    !    if (b1 < 0.001 ) then
+    !        if ( capear > 0.0 ) then
+    !            MarTax2=b0
+    !        endif
+    !    endif
+    !
+    !end function MarTax2
     !==========================================================================
 
 
     !==========================================================================
-    function MarTax3(l0,l1,l2,ca0,lear,caear)
-        !==========================================================================
-
-        real(prec):: MarTax3
-        real(prec),intent(in):: l0,l1,l2,ca0,lear,caear
-
-        ! Marginal Capital Income Tax
-        MarTax3=ca0
-
-
-    end function MarTax3
+    !function MarTax3(l0,l1,l2,ca0,lear,caear)
+    !    !==========================================================================
+    !
+    !    real(prec):: MarTax3
+    !    real(prec),intent(in):: l0,l1,l2,ca0,lear,caear
+    !
+    !    ! Marginal Capital Income Tax
+    !    MarTax3=ca0
+    !
+    !
+    !end function MarTax3
     !==========================================================================
 
 
