@@ -197,26 +197,9 @@ MODULE PARAMS
     real(prec)::socwelf2,optr,optw,optN,optK
     real(prec),dimension(5):: opttax
     real(prec),dimension(nty,ns,na,J,n_ofsh)::optvfun,optcfun,optlfun,optafun
-    !real(prec),dimension(nty,ns,na,J,n_ofsh)::optafun
-
-
-    !! Distribution over state space
-    !real(prec),dimension(nty,ns,na,J,n_ofsh)::phi,phitot,optphi
-    !real(8) :: Phi_work(nty,ns,na,Jr-1,n_ofsh)
-
-
-    ! Household value and policy functions
-    !real(prec),dimension(nty,ns,na,J,n_ofsh)::afun
-    !real(prec),dimension(nty,ns,na,J,n_ofsh)::Vfun,cfun,lfun,vpfun,afun
-    
-
 
     ! Asset distribution
     real(prec),dimension(na):: Adis
-
-
-    ! Average variables by age
-    !real(prec),dimension(J):: abar,lbar,labar,cbar,astartbar,meanearn,logmean,varlogearn
 
 
     ! Average variables by age and type
@@ -225,20 +208,25 @@ MODULE PARAMS
 
 
     ! Prices of capital and labor; labor supply and capital stock, and other 
-    real(prec):: r,w,N,LabS,K,As,Astart,Y,C,Tr,exdem,Totinctax,hours,Transagg,stdle,stdleini
-    real(8) :: Rs, TaxS, RetS, Rs_aux, YauxS, AftTaxauxS, TaxCS, TaxaboveybS, TaxE
+    real(prec):: r, w, N, LabS, K, As, Astart, Y, C, Tr, exdem, Totinctax, hours, Transagg, stdle, stdleini
+    real(8) :: YauxS, AftTaxauxS, TaxCS, TaxE
     real(8) :: rbar
+    real(8) :: AAgg, RetAgg
+    real(8) :: RAgg, RauxAgg, LAgg, CAgg
+    real(8) :: TaxInc, TaxC, TaxTot
+    real(8) :: TaxIncAboveYb, YfBelowYb, DBelowYb
+    real(8) :: TotOffshCost
 
 
     ! Social security taxes and benefits
-    real(prec),parameter:: taup=0.124,maxSSrat=87000.0/37748.0
+    !real(prec),parameter:: taup=0.124,maxSSrat=87000.0/37748.0
 
-    real(prec):: maxSS
-    real(prec):: SS,SSn,TotSStax
+    !real(prec):: maxSS
+    !real(prec):: SS,SSn,TotSStax
 
 
     ! Bequest 
-    real(prec):: TrB,TrBn,Trstart
+    real(prec):: TrB,TrBn !,Trstart
 
 
     ! Welfare measures
@@ -248,7 +236,7 @@ MODULE PARAMS
 
     
 
-    integer :: jj_glob
+    !integer :: jj_glob
 
 
     !===========================================================================

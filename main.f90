@@ -15,12 +15,12 @@ contains
         
         call initialize()
         
-        guesr = 0.04d0
-        guesrb = 0d0
-        guestheta0 = 0.940d0
-        guesB = 0d0
-        guesS = 0d0
-        call newton(resid,guesr,guesrb,guestheta0,guesB,guesS)    
+        guesr = 0.038275d0 !0.04d0  !
+        guesrb = -0.002272d0 !0d0    !
+        guestheta0 = 0.833632d0 !0.940d0  ! 
+        guesB = 0.031670d0 !0d0     ! 
+        !guesS = 0d0
+        call newton(resid,guesr,guesrb,guestheta0,guesB)    
         
     end subroutine test_run
     

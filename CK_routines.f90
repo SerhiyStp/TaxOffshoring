@@ -18,7 +18,7 @@ contains
         
     end subroutine initialize    
     
-    subroutine resid(x1,x2,x3,x4,x5,fv1,fv2,fv3,fv4,fv5)
+    subroutine resid(x1,x2,x3,x4,fv1,fv2,fv3,fv4)
         use params
         use Mod_Household
         use Mod_Distribution
@@ -26,12 +26,13 @@ contains
 
         implicit none
 
-        real(prec),intent(in):: x1,x2,x3,x4,x5
-        real(prec),intent(out):: fv1,fv2,fv3,fv4,fv5
+        real(prec),intent(in):: x1,x2,x3,x4 !,x5
+        real(prec),intent(out):: fv1,fv2,fv3,fv4 !,fv5
         CHARACTER (LEN=*), PARAMETER :: outDir = "tmp/"
         INTEGER :: iunit
         integer :: get_new_soln
         real(8) :: KN, w_test
+        real(8) :: Y2, exdem2
         
         r   = x1
         !N   = x2
@@ -40,7 +41,7 @@ contains
         !Govcons = x3
         theta0 = x3
         TrB = x4 
-        SS  = x5 
+        !SS  = x5 
 
         !K = N*( (alpha*TFP) / (r+delta) )**(1.0/(1.0-alpha))        ! Capital Stock
         !Y = TFP*(K**alpha)*(N**(1.0-alpha))					        ! Aggregate Output
@@ -91,24 +92,28 @@ contains
         !fv3=Govcons-tauc*C-Totinctax
         !fv4=TrB-TrBn
         !fv5=SS-SSn
-        
-        fv1 = As/LabS - KN !K/N
-        K = KN*LabS
-        fv2 = r*K - Rs
-        fv3 = Govcons + RetS - TaxS 
-        fv4 = TrB-TrBn
+        K   = KN*LAgg
+        fv1 = AAgg/LAgg - KN !K/N
+        fv2 = r*K - RAgg
+        fv3 = Govcons + RetAgg - TaxTot 
+        fv4 = TrB - TrBn
         
         !print '(4(a7,f12.7))', 'fv1 = ', fv1, ' fv2 = ', fv2, ' fv3 = ', fv3, ' fv4 = ', fv4
 
         GovconsN = tauc*C + Totinctax
 
         ! Goods Market Clearing
-        Y	 = TFP * (K**alpha) * (LabS**(1.0-alpha))	
-        exdem=( C + As - (1.0-delta)*K + Govcons - Y )
-           
+        Y	 = TFP * (K**alpha) * (LAgg**(1.0-alpha))	
+        exdem=( CAgg + AAgg + TotOffshCost + Govcons - (1.0d0-delta)*K  - Y )
+        
+        Y2 = TFP * (AAgg**alpha) * (LAgg**(1.0-alpha))
+        exdem2 = ( CAgg + AAgg + TotOffshCost + Govcons - (1.0d0-delta)*AAgg  - Y2 )
+        print *, 'K - AAgg = ', K - AAgg
+        print *, 'exdem = ', exdem
+        print *, 'exdem2 = ', exdem2
     end subroutine resid
     
-    subroutine newton(fun,gues1,gues2,gues3,gues4,gues5)
+    subroutine newton(fun,gues1,gues2,gues3,gues4)
 
         ! This subroutine computes the steady state interest rate and labor supply and intercept for tax system using the 
         ! the classical newton method; inputs are the guesses for r, N and Tint and the subroutine calls resid that
@@ -119,21 +124,20 @@ contains
         implicit none
 
         integer::i
-        real(prec)::tol=0.0025 
-        real(prec):: gues1,gues2,gues3,gues4,gues5
-        real(prec):: ngues1,ngues2,ngues3,ngues4,ngues5
-        real(prec):: fval1,fval2,fval3,fval4,fval5
+        real(prec)::tol=0.000001d0 !0.0025 
+        real(prec):: gues1,gues2,gues3,gues4 !,gues5
+        real(prec):: ngues1,ngues2,ngues3,ngues4 !,ngues5
+        real(prec):: fval1,fval2,fval3,fval4 !,fval5
         real(prec),parameter:: adj=0.2
         real(prec)::errel,errabs
-        real(prec),dimension(3,3)::deltamat,deltainv
         real(prec)::x,xguess,fnorm,epss,etas,high,low
         integer::nroot,info,itmax
-        real(8) :: d1, d2, d3, d4, d5
+        !real(8) :: d1, d2, d3, d4, d5
         
         interface
-            subroutine fun(x1,x2,x3,x4,x5,fv1,fv2,fv3,fv4,fv5)
-                real(8),intent(in):: x1,x2,x3,x4,x5
-                real(8),intent(out):: fv1,fv2,fv3,fv4,fv5
+            subroutine fun(x1,x2,x3,x4,fv1,fv2,fv3,fv4)
+                real(8),intent(in):: x1,x2,x3,x4 
+                real(8),intent(out):: fv1,fv2,fv3,fv4 
             end subroutine fun
         end interface
 
@@ -144,17 +148,17 @@ contains
             print*,'____________________________________________________________________'
             print*,"Newton iteration ",i
 
-            call fun(gues1,gues2,gues3,gues4,gues5,fval1,fval2,fval3,fval4,fval5)
+            call fun(gues1,gues2,gues3,gues4,fval1,fval2,fval3,fval4)
 
-            ngues1=TFP*alpha*( As/(LabS*(1.0+nn)) )**(alpha-1.0)-delta
+            ngues1=TFP*alpha*( AAgg/(LAgg*(1.0+nn)) )**(alpha-1.0)-delta
             !ngues2=LabS
-            ngues2 = gues1 - Rs_aux/As 
+            ngues2 = gues1 - RauxAgg/AAgg 
             !ngues4=gues4
             !Govcons = 25.5490651400000d0
-            ngues3 = (YauxS + TaxCS + TaxaboveybS + TaxE - Govcons - RetS)/AftTaxauxS
+            ngues3 = (YfBelowYb + TaxC + TaxIncAboveYb + TaxE - Govcons - RetAgg)/DBelowYb
             ngues4=TrBn 
             !ngues5=SSn  
-            ngues5=gues5
+            !ngues5=gues5
 
             !d1 = abs(ngues1-gues1)
             !d2 = abs(ngues2-gues2)
@@ -178,7 +182,7 @@ contains
             !ngues3=high
             !ngues3=GovconsN
 
-            if ( (abs(fval1)/Y <tol) .and. (abs(fval2)/ngues2<tol) .and. ( abs(fval3)/Y < tol ) .and. ( abs(fval4) < tol ) .and. ( abs(fval5) < tol ) ) then
+            if ( (abs(fval1)/Y <tol) .and. (abs(fval2)/ngues2<tol) .and. ( abs(fval3)/Y < tol ) .and. ( abs(fval4) < tol ) ) then
                 print*,'Convergence Achieved'
                 exit
             endif
@@ -214,7 +218,7 @@ contains
             gues2=(1.0-adj)*gues2+adj*ngues2
             gues3=(1.0-adj)*gues3+adj*ngues3
             gues4=(1.0-adj)*gues4+adj*ngues4
-            gues5=(1.0-adj)*gues5+adj*ngues5
+            !gues5=(1.0-adj)*gues5+adj*ngues5
 
             ! open(11, file='equilibrium_tmp.txt')
             ! write(11, '(f20.8)') gues1
@@ -236,7 +240,7 @@ contains
         print '(a,2f15.6,f15.11)', "  (2) labor supply  ",gues2,ngues2,fval2/Y
         print '(a,2f15.6,f15.11)', "  (3) parameter a2  ",gues3,ngues3,fval3/Y
         print '(a,2f15.6,f15.11)', "  (4) bequest TrB   ",gues4,ngues4,fval4
-        print '(a,2f15.6,f15.11)', "  (5) SS benefit SS ",gues5,ngues5,fval5
+        !print '(a,2f15.6,f15.11)', "  (5) SS benefit SS ",gues5,ngues5,fval5
 
         !	print*, 'Excess Dem. Goods Mark.',exdem/Y
         !	print*,' ' 
@@ -273,20 +277,20 @@ contains
         N	= ngues2
         a2	= ngues3
         TrB	= ngues4
-        SS	= ngues5
+        !SS	= ngues5
 
         open(11, file='equilibrium_tmp_backup.txt')
         write(11, '(f20.16)') ngues1
         write(11, '(f20.16)') ngues2
         write(11, '(f20.16)') ngues3
         write(11, '(f20.16)') ngues4
-        write(11, '(f20.16)') ngues5
+        !write(11, '(f20.16)') ngues5
         write(11, '(f20.16)') chi
         write(11, '(f20.16)') beta_S
         close(11)
         
         newton_res(1) = r
-        newton_res(2) = As/((1.0+nn)*Y)
+        newton_res(2) = AAgg/((1.0+nn)*Y)
         newton_res(3) = hours
         
     end subroutine newton    
@@ -331,7 +335,7 @@ contains
         guestheta0 = 0.940d0
         guesB = 0d0
         guesS = 0d0
-        call newton(resid,guesr,guesrb,guestheta0,guesB,guesS)
+        call newton(resid,guesr,guesrb,guestheta0,guesB)
         
         ![wealth_obs_top_01_001, wealth_obs_top_001, gini_wealth_obs, inc_top_01_001, inc_top_001, gini_inc, wealth_obs_top_001]
         ! wealth top1, top01, top001; income top1, top01, top001 
