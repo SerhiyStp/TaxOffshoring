@@ -776,5 +776,30 @@ contains
         res = net_inc + a + TrB - c*(1.0d0+tauc)
         
     end function ap_bc
+    
+    function test_bc(a, c, h, r, w, ap) result(res)
+        real(8), intent(in) :: a
+        real(8), intent(in) :: c
+        real(8), intent(in) :: h
+        real(8), intent(in) :: r
+        real(8), intent(in) :: w
+        real(8), intent(in) :: ap
+        real(8) :: rcur, y, net_inc_ofsh, net_inc_nofsh, net_inc, dyh
+        real(8) :: res
+        
+        y = r*a + w*h
+        net_inc_ofsh = frac_ofsh*y + after_tax_income((1d0-frac_ofsh)*y) - psi_mod
+        net_inc_nofsh = after_tax_income(y)  
+        net_inc = max(net_inc_ofsh, net_inc_nofsh)     
+    
+        !if (net_inc_ofsh >= net_inc_nofsh) then
+        !    dyh = D_after_tax_income((1d0-frac_ofsh)*y)*(1d0-frac_ofsh)
+        !else
+        !    dyh = D_after_tax_income(y)
+        !end if        
+        
+        res = net_inc + a + TrB - c*(1.0d0+tauc) - ap
+        
+    end function test_bc
 
 end module Mod_Household

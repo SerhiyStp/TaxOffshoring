@@ -3,6 +3,7 @@ module Mod_Distribution
     implicit none
     
     real(8), allocatable :: Phi(:, :, :, :, :, :, :)
+    real(8), allocatable :: TestBC(:, :, :, :, :, :, :)
     real(8), allocatable :: Phi_ret(:, :, :, :, :, :)
     !dimension(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork) :: Phi
     integer, parameter :: na_small = 50
@@ -21,7 +22,9 @@ contains
         if (ierr /= 0) then
             print *, 'Error allocating Phi_ret'
             stop
-        end if        
+        end if 
+        
+        allocate(TestBC(na, n_ofsh, ntheta, nkappa, nz, nxi, Twork), stat=ierr)
     end subroutine init_distr
     
     subroutine Distribution(save_res)
@@ -59,6 +62,9 @@ contains
         real(8) :: labinc_tmp, totinc_tmp, tax_tmp !, yaux_tmp, aftertaxaux_tmp, taxaboveyb_aux
         real(8) :: aprime !, TaxE
         real(8) :: TaxIncTest
+        real(8) :: RaggTmp, RauxaggTmp, TrBnTmp, TaxETmp
+        real(8) :: atmp, ctmp, aprimetmp, testbc_tmp, aftertaxtmp, aftertaxtest
+        real(8) :: rptmp
         
         ! Initialize Distribution by Computing Distribution for first Generation
         get_phi = 1
@@ -230,6 +236,7 @@ contains
             labar(jc) = sum(Phi(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc)*lfun(1:na,1:n_ofsh,1:ntheta,1:nkappa,1:nz,1:nxi,jc))
             inctaxbar(jc) = 0d0
             do ia = 1, na
+                atmp = grida(ia)
                 do itheta = 1, ntheta
                     do ikappa = 1, nkappa
                         rtmp = rfunc(grida(ia), thetas(itheta), Kappas(ikappa))
@@ -238,18 +245,36 @@ contains
                                 do jj = 1, n_ofsh
                                     labinc_tmp = w*eta(iz)*xi(ixi)*ep(1,jc)*lfun(ia,jj,itheta,ikappa,iz,ixi,jc)
                                     totinc_tmp = labinc_tmp + rtmp*grida(ia)
+                                    
+                                    ctmp = cfun(ia,jj,itheta,ikappa,iz,ixi,jc)
+                                    aprimetmp = afun(ia,jj,itheta,ikappa,iz,ixi,jc)
+                                    
                                     if (offshoring(ia,jj,itheta,ikappa,iz,ixi,jc) < 0.5d0) then
                                         tax_tmp = tax_income(totinc_tmp)
                                         YfBelowYb = YfBelowYb + min(yb_cutoff, totinc_tmp)*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)
                                         DBelowYb = DBelowYb + after_tax_income_aux(totinc_tmp)*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)
                                         TaxIncAboveYb = TaxIncAboveYb + tau_max*max(0d0, totinc_tmp-yb_cutoff)*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)
+                                    
+                                        aftertaxtmp = totinc_tmp - tax_tmp
+                                        !aftertaxtest = after_tax_income(totinc_tmp)
+                                        testbc_tmp = (1d0+tc)*ctmp + aprimetmp - aftertaxtmp - atmp - TrB
+                                        !if (abs(testbc_tmp) > 5d-2) then
+                                        !    print *, 'warning'
+                                        !end if                                        
                                     else
-                                        tax_tmp = tax_income(frac_ofsh*totinc_tmp)
-                                        YfBelowYb = YfBelowYb + min(yb_cutoff, frac_ofsh*totinc_tmp)*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)
-                                        DBelowYb = DBelowYb + after_tax_income_aux(frac_ofsh*totinc_tmp)*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)
-                                        TaxIncAboveYb = TaxIncAboveYb + tau_max*max(0d0, (frac_ofsh*totinc_tmp-yb_cutoff))*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)                                       
+                                        tax_tmp = tax_income((1d0-frac_ofsh)*totinc_tmp)
+                                        YfBelowYb = YfBelowYb + min(yb_cutoff, (1d0-frac_ofsh)*totinc_tmp)*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)
+                                        DBelowYb = DBelowYb + after_tax_income_aux((1d0-frac_ofsh)*totinc_tmp)*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)
+                                        TaxIncAboveYb = TaxIncAboveYb + tau_max*max(0d0, ((1d0-frac_ofsh)*totinc_tmp-yb_cutoff))*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)                                       
                                         TotOffshCost = TotOffshCost + psi_vals(jj)*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc) 
+                                        
+                                        aftertaxtmp = (1d0-frac_ofsh)*totinc_tmp - tax_tmp + frac_ofsh*totinc_tmp - psi_vals(jj)
+                                        testbc_tmp = (1d0+tc)*ctmp + aprimetmp - aftertaxtmp - atmp - TrB                                   
                                     end if
+                                    
+                                    
+
+                                    TestBC(ia, jj, itheta, ikappa, iz, ixi, jc) = testbc_tmp
                                     
                                     inctaxbar(jc) = inctaxbar(jc) + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*tax_tmp
                                     
@@ -257,18 +282,25 @@ contains
                                     
                                     As = As + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*aprime*Nu(jc)
                                     LAgg = LAgg + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*eta(iz)*xi(ixi)*ep(1,jc)*lfun(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)
+                                    
+                                    RaggTmp = 0d0
+                                    RauxaggTmp = 0d0 
+                                    TrBnTmp = 0d0
+                                    TaxETmp = 0d0
                                     do ithetap = 1, ntheta
                                         do ikappap = 1, nkappa
-                                            rtmp = rfunc(aprime, thetas(ithetap), Kappas(ikappap))
-                                            RAgg = RAgg + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*pi_kappa(ikappap)*pi_theta(itheta,ithetap)*rtmp*aprime*Nu(jc)    
-                                            RauxAgg = RauxAgg + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*pi_kappa(ikappap)*pi_theta(itheta,ithetap)*(rtmp-rbar)*aprime*Nu(jc)
-                                            
-                                            TrBn = TrBn + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*pi_kappa(ikappap)*pi_theta(itheta,ithetap)*(aprime*(1d0 + rtmp))*Nu(jc)*(1d0-surv(jc))
-                                            TaxE = TaxE + Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*pi_kappa(ikappap)*pi_theta(itheta,ithetap)*tau_estate*max(aprime*(1d0 + rtmp) - a_estate, 0d0)*Nu(jc)*(1d0-surv(jc))                                            
-                                            
+                                            rptmp = rfunc(aprime, thetas(ithetap), Kappas(ikappap))
+                                            RaggTmp = RaggTmp + pi_kappa(ikappap)*pi_theta(itheta,ithetap)*rptmp*aprime !*Nu(jc)    
+                                            RauxaggTmp = RauxaggTmp + pi_kappa(ikappap)*pi_theta(itheta,ithetap)*(rptmp-rbar)*aprime !*Nu(jc)
+                                                                                      
+                                            TrBnTmp = TrBnTmp + pi_kappa(ikappap)*pi_theta(itheta,ithetap)*(aprime*(1d0 + rptmp)) !*Nu(jc)*(1d0-surv(jc))
+                                            TaxETmp = TaxETmp + pi_kappa(ikappap)*pi_theta(itheta,ithetap)*tau_estate*max(aprime*(1d0 + rptmp) - a_estate, 0d0)
                                         end do
                                     end do
-
+                                    RAgg = RAgg + RaggTmp*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)
+                                    RauxAgg = RauxAgg + RauxaggTmp*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)
+                                    TrBn = TrBn + TrBnTmp*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)*(1d0-surv(jc))
+                                    TaxE = TaxE + TaxETmp*Phi(ia,jj,itheta,ikappa,iz,ixi,jc)*Nu(jc)*(1d0-surv(jc))
                                 end do    
                             end do
                         end do
@@ -296,10 +328,10 @@ contains
                                     DBelowYb = DBelowYb + after_tax_income_aux(totinc_tmp)*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)
                                     TaxIncAboveYb = TaxIncAboveYb + tau_max*max(0d0, totinc_tmp-yb_cutoff)*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)
                                 else
-                                    tax_tmp = tax_income(frac_ofsh*totinc_tmp)
-                                    YfBelowYb = YfBelowYb + min(yb_cutoff, frac_ofsh*totinc_tmp)*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)
-                                    DBelowYb = DBelowYb + after_tax_income_aux(frac_ofsh*totinc_tmp)*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)
-                                    TaxIncAboveYb = TaxIncAboveYb + tau_max*max(0d0, (frac_ofsh*totinc_tmp-yb_cutoff))*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)                                    
+                                    tax_tmp = tax_income((1d0-frac_ofsh)*totinc_tmp)
+                                    YfBelowYb = YfBelowYb + min(yb_cutoff, (1d0-frac_ofsh)*totinc_tmp)*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)
+                                    DBelowYb = DBelowYb + after_tax_income_aux((1d0-frac_ofsh)*totinc_tmp)*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)
+                                    TaxIncAboveYb = TaxIncAboveYb + tau_max*max(0d0, ((1d0-frac_ofsh)*totinc_tmp-yb_cutoff))*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)                                    
                                     TotOffshCost = TotOffshCost + psi_vals(jj)*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc) 
                                 end if
                                                                      
@@ -309,15 +341,25 @@ contains
                                 
                                 aprime = afun_ret(ia,jj,itheta,ikappa,iz,jc)
                                 As = As + Phi_ret(ia,jj,itheta,ikappa,iz,jc)*aprime*Nu(Twork+jc)
+                                
+                                RaggTmp = 0d0
+                                RauxaggTmp = 0d0     
+                                TrBnTmp = 0d0
+                                TaxETmp = 0d0                                
                                 do ithetap = 1, ntheta
                                     do ikappap = 1, nkappa
-                                        rtmp = rfunc(aprime, thetas(ithetap), Kappas(ikappap))
-                                        RAgg = RAgg + Phi_ret(ia,jj,ithetap,ikappap,iz,jc)*pi_kappa(ikappap)*pi_theta(itheta,ithetap)*rtmp*aprime*Nu(Twork+jc)
-                                        RauxAgg = RauxAgg + Phi_ret(ia,jj,ithetap,ikappap,iz,jc)*pi_kappa(ikappap)*pi_theta(itheta,ithetap)*(rtmp-rbar)*aprime*Nu(Twork+jc)
-                                        TrBn = TrBn + Phi_ret(ia,jj,itheta,ikappa,iz,jc)*pi_kappa(ikappap)*pi_theta(itheta,ithetap)*(aprime*(1d0 + rtmp))*Nu(Twork+jc)*(1d0-surv(Twork+jc))
-                                        TaxE = TaxE + Phi_ret(ia,jj,itheta,ikappa,iz,jc)*pi_kappa(ikappap)*pi_theta(itheta,ithetap)*tau_estate*max(aprime*(1d0 + rtmp) - a_estate, 0d0)*Nu(Twork+jc)*(1d0-surv(Twork+jc))
+                                        rptmp = rfunc(aprime, thetas(ithetap), Kappas(ikappap))
+                                        RaggTmp = RaggTmp + pi_kappa(ikappap)*pi_theta(itheta,ithetap)*rptmp*aprime
+                                        RauxaggTmp = RauxaggTmp + pi_kappa(ikappap)*pi_theta(itheta,ithetap)*(rptmp-rbar)*aprime
+                                        
+                                        TrBnTmp = TrBnTmp + pi_kappa(ikappap)*pi_theta(itheta,ithetap)*(aprime*(1d0 + rptmp))
+                                        TaxETmp = TaxETmp + pi_kappa(ikappap)*pi_theta(itheta,ithetap)*tau_estate*max(aprime*(1d0 + rptmp) - a_estate, 0d0)
                                     end do
                                 end do
+                                RAgg = RAgg + RaggTmp*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)
+                                RauxAgg = RauxAgg + RauxaggTmp*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)
+                                TrBn = TrBn + TrBnTmp*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)*(1d0-surv(Twork+jc))
+                                TaxE = TaxE + TaxETmp*Phi_ret(ia,jj,itheta,ikappa,iz,jc)*Nu(Twork+jc)*(1d0-surv(Twork+jc))
                             end do
                         end do
                     end do
