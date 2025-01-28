@@ -39,8 +39,8 @@ subroutine static_focs_nofsh(x, f, n)
     
     a = x(1)
     h = x(2)
-    rcur = rfunc(a, theta_mod, kappa_mod)
-    y = rcur*a + w_mod*h
+    rcur = max( rfunc(a, theta_mod, kappa_mod), 0d0)
+    y = max(rcur*a + w_mod*h, 0d0)
     net_inc = after_tax_income(y)       
     dyh = D_after_tax_income(y)*w_mod      
     f(1) = lambda_mod*dyh - chi*h**sig2
@@ -62,7 +62,7 @@ subroutine static_focs_ofsh(x, f, n)
     a = x(1)
     h = x(2)
     rcur = rfunc(a, theta_mod, kappa_mod)
-    y = rcur*a + w_mod*h
+    y = max(rcur*a + w_mod*h, 0d0)
     net_inc = frac_ofsh*y + after_tax_income((1d0-frac_ofsh)*y) - psi_mod    
     dyh = (D_after_tax_income((1d0-frac_ofsh)*y)*(1d0-frac_ofsh) + frac_ofsh)*w_mod      
     f(1) = lambda_mod*dyh - chi*h**sig2

@@ -95,7 +95,7 @@ contains
         real(8) :: vp_theta(ntheta), Vnext_theta(ntheta), Vnext_theta0(ntheta), Vnext0
         real(8) :: dDa(na), ra(na), dD(na, n_ofsh, ntheta, nkappa, nz), dD_
         real(8) :: beta_surv, Ucur
-        real(8) :: xsol(2), xguess(2), fnorm, fvals(2), fnorm_test
+        real(8) :: xsol(2), xguess(2), fnorm, fvals(2), fnorm_test, xtmp(2)
         integer :: izp, ixip, ikappap
         real(8) :: hsol, fval
         integer :: ic
@@ -393,7 +393,7 @@ contains
                                         xguess = xsols(:, ia-1, jj, itheta, ikappa, iz, ixi, jc)
                                     end if
                     
-                                    call static_focs(xguess, fvals, 2)
+                                    !call static_focs(xguess, fvals, 2)
                                     call d_NEQNF (static_focs, xsol, xguess=xguess, fnorm=fnorm)
                                     !fnorm_test = sum(fvals**2d0)/2d0
 
@@ -404,22 +404,29 @@ contains
                                         call d_NEQNF (static_focs_nofsh, xsol, xguess=xguess, fnorm=fnorm)
                                         if (fnorm > 1d-6) then
                                             print *, 'WARNING: solver failed in no-offshoring'
+                                            call static_focs_nofsh(xsol, fvals, 2)
                                         end if
                                         asol = xsol(1)
                                         hsol = xsol(2)
+                                        xtmp = xsol
                                         rtmp = rfunc(asol, theta_mod, kappa_mod)
-                                        ytmp = rcur*asol + w_mod*hsol
+                                        ytmp = rtmp*asol + w_mod*hsol
                                         net_inc_ofsh = frac_ofsh*ytmp + after_tax_income((1d0-frac_ofsh)*ytmp) - psi_mod
                                         net_inc_nofsh = after_tax_income(ytmp)  
                                         if (net_inc_nofsh < net_inc_ofsh) then
                                             call d_NEQNF (static_focs_ofsh, xsol, xguess=xguess, fnorm=fnorm)    
                                             if (fnorm > 1d-6) then
-                                                print *, 'WARNING: solver failed in offshoring'
+                                                call d_NEQNF (static_focs_ofsh, xsol, xguess=xtmp, fnorm=fnorm)
+                                                if (fnorm > 1d-6) then
+                                                    call static_focs_ofsh(xtmp, fvals, 2)
+                                                    call static_focs_ofsh(xsol, fvals, 2)
+                                                    print *, 'WARNING: solver failed in offshoring'
+                                                end if
                                             end if     
                                             asol = xsol(1)
                                             hsol = xsol(2)
                                             rtmp = rfunc(asol, theta_mod, kappa_mod)
-                                            ytmp = rcur*asol + w_mod*hsol
+                                            ytmp = rtmp*asol + w_mod*hsol
                                             net_inc_ofsh = frac_ofsh*ytmp + after_tax_income((1d0-frac_ofsh)*ytmp) - psi_mod
                                             net_inc_nofsh = after_tax_income(ytmp)  
                                             if (net_inc_nofsh > net_inc_ofsh) then

@@ -4,7 +4,8 @@ MODULE TAUCHEN_mod
 
 Contains
     
-    subroutine tauchen_pareto(s_e, rho, nz, m, pareto_cutoff, alpha, zvals, prob)
+    subroutine discretize_w_pareto(s_e, rho, nz, m, pareto_cutoff, alpha, zvals, prob)
+        use toolbox, only: rouwenhorst
         real(8) :: s_e
         real(8) :: s_z
         real(8) :: rho
@@ -22,6 +23,7 @@ Contains
         real(8) :: ytmp(ntmp)     
         integer :: i
         integer :: npareto
+        real(8) :: s_e_row, prob_row(nz, nz), logzvals_row(nz), pstat_row(nz)
         
         atmp = [pareto_cutoff]
         call vdcdfnorminv(ntmp, atmp, ytmp)
@@ -29,10 +31,13 @@ Contains
         s_z = s_e/sqrt(1d0-rho**2d0)
         z_norm_cutoff = x_norm_cutoff*s_z        
         
-        call tauchen(s_e, rho, nz, m, logzvals, prob, pstat)
+        !call tauchen(s_e, rho, nz, m, logzvals, prob, pstat)
+        s_e_row = s_e/sqrt(1d0-rho**2d0)
+        !call rouwenhorst(rho, s_e_row, prob_row, logzvals_row, pstat_row)
+        call rouwenhorst(rho, s_e_row, prob, logzvals, pstat)
     
         !do i = 1, nz
-        !    print *, sum(prob(i,:))
+        !    print *, sum(prob_row(i,:))
         !end do
         call normal_01_cdf(logzvals(1)/s_z, cdfstat(1))
         do i = 2, nz
@@ -54,7 +59,7 @@ Contains
         
         print *, npareto, ' values transformed'
     
-    end subroutine tauchen_pareto
+    end subroutine discretize_w_pareto
     
 
     Subroutine tauchen(STDE,RHO,ZZ,M,SZ,PZEE,pi)

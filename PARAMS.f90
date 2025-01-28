@@ -13,8 +13,8 @@ MODULE PARAMS
     integer, parameter :: file_res_id = 52
 
     ! Offshoring
-    real(8) :: Share_Offshoring, share_off_dist(5), wealth_obs_dist(6), wealth_tot_dist(6),income_dist(6), lab_income_dist(6)
-    real(prec):: qd, qw, qwd
+    !real(8) :: Share_Offshoring, share_off_dist(5), wealth_obs_dist(6), wealth_tot_dist(6),income_dist(6), lab_income_dist(6)
+    !real(prec):: qd, qw, qwd
     real(prec),parameter:: psi_offshore=2.5d0 !1.5d0 !0.5d0
     integer,parameter:: n_ofsh=3 !1 !3
     !real(prec),parameter:: psi_vals(n_ofsh)=[psi_offshore-0.5d0, psi_offshore, psi_offshore+3.5d0]
@@ -31,7 +31,7 @@ MODULE PARAMS
     !integer,parameter:: ns=7, na=501, nl=66, nty=2, maxit=10000  ! Size of grids
     !integer,parameter:: ns=8, na=501, nl=66, nty=1, maxit=10000  ! Size of grids
     !integer,parameter:: ns=8, na=3001, nl=1, nty=1, maxit=10000  ! Size of grids
-    integer, parameter :: ns=9 ! Persistent wage shocks - old
+    !integer, parameter :: ns=9 ! Persistent wage shocks - old
     integer, parameter :: nz=9 ! Persistent wage shocks
     integer, parameter :: na=1001 !201 !401 ! Assets
     integer, parameter :: nl=1 !
@@ -41,7 +41,7 @@ MODULE PARAMS
 
     integer:: na0,na1,ntauk
 
-    real(8) :: DistX(ns), DistXW(ns)
+    !real(8) :: DistX(ns), DistXW(ns)
 
 
     ! Population
@@ -53,28 +53,28 @@ MODULE PARAMS
 
 
     ! Indicators
-    integer:: ind_pref 
+    !integer:: ind_pref 
     ! = 1 non-separable 
     ! = 2 separable preference
-    integer:: indext 
+    !integer:: indext 
     ! = 1 for benchmark with Gouveia-Strauss tax function
 
     ! Parameters to be calibrated for each preference specs (to be calibrated)
     !real(prec),parameter:: beta_S	= 0.959d0 !0.98d0 !0.974 !0.9750 !0.97172 !1.2d0 
-    real(prec) :: beta_S
+    !real(prec) :: beta_S
     real(prec),parameter:: delta_S	= 0.0833d0  !0.045d0 !0.0780 !0.0833 
 
-    real(prec),parameter:: beta_NS	= 1.00093 
-    real(prec),parameter:: delta_NS	= 0.0833  
+    !real(prec),parameter:: beta_NS	= 1.00093 
+    !real(prec),parameter:: delta_NS	= 0.0833  
 
     ! (1) parameters for NON-separable preference
-    real(prec),parameter:: gamma	= 0.377 
-    real(prec),parameter:: sigma	= 4.0		
+    !real(prec),parameter:: gamma	= 0.377 
+    !real(prec),parameter:: sigma	= 4.0		
 
     ! (2) parameters for separable preference
     !real(prec),parameter:: chi	= 17.5d0 !3.70 !3.55 !3.20 !2.15 !2.05 !1.95 !1.92 ! to be calibrated  
     real(prec) :: chi
-    real(prec),parameter:: sig1	= 1.509 !2.0  
+    real(prec),parameter:: sig1	= 2.0d0 !1.509 !2.0  
     real(prec),parameter:: frisch=0.6d0
     real(prec),parameter:: sig2	= 1d0/frisch !2d0 !10d0/6d0 !3.0
 
@@ -84,24 +84,24 @@ MODULE PARAMS
     real(prec),parameter:: TFP	= 1.0
 
     ! Government Policies
-    real(prec),parameter:: govconsNS	= 6.670 ! Gov't consumption Non Separable utility
-    real(prec),parameter:: govconsS		= 5.870 ! Gov't consumption Separable utility
+    !real(prec),parameter:: govconsNS	= 6.670 ! Gov't consumption Non Separable utility
+    !real(prec),parameter:: govconsS		= 5.870 ! Gov't consumption Separable utility
 
     real(prec),parameter:: tauc=0.05 	!Consumption tax
-    real(prec),parameter:: b=0.5		!Social Security Replacement Rate
+    !real(prec),parameter:: b=0.5		!Social Security Replacement Rate
 
 
-    real(prec),parameter::umin=-1.0E+2
-    real(prec),parameter::penscale=10000000
-    real(prec),parameter::maxl=0.99
+    !real(prec),parameter::umin=-1.0E+2
+    !real(prec),parameter::penscale=10000000
+    !real(prec),parameter::maxl=0.99
 
     ! Value of the borrowing constraint
     real(prec),parameter:: blimit=0.0
 
     ! Wage shocks and transition probabilities
-    real(8) :: sig_z = 0.02d0
-    real(8) :: rho_z = 0.8d0
-    real(8) :: sig_xi = 0.01d0
+    real(8) :: sig_z = 0.40d0 !0.05d0 !0.02d0
+    real(8) :: rho_z = 0.95d0 !0.8d0
+    real(8) :: sig_xi = 0.25d0
     real(prec),dimension(nz,nz)::pi
     real(8) :: eta(nz)
     real(8) :: pi_xi(nxi)
@@ -114,7 +114,7 @@ MODULE PARAMS
     real(8) :: b_ret(nz)
 
     
-    real(8)::pstat(1,ns)
+    !real(8)::pstat(1,ns)
     
     ! Heterogeneous returns
     real(8), parameter :: omega1 = 0.072d0
@@ -122,8 +122,8 @@ MODULE PARAMS
     real(8), parameter :: gamma_omega = 0.30d0
     real(8), parameter :: abar_omega = 0.0d0
     real(8), parameter :: omegabar = 0.4d0
-    real(8), parameter :: rF = 0.03d0 !0.01d0
-    real(8), parameter :: rR = 0.09d0 !0.06d0
+    real(8), parameter :: rF = 0.01d0 !0.00d0 !0.0d0 !0.03d0 !0.01d0
+    real(8), parameter :: rR = 0.15d0 !0.14d0 !0.13d0 !0.12d0 !0.11d0 !0.15d0 !0.09d0 !0.06d0
     real(8), parameter :: sig_kappa = 0.05d0
     integer, parameter :: nkappa = 3 !1 !3 ! Rate of return temporary shocks
     real(8) :: Kappas(nkappa)
@@ -133,21 +133,6 @@ MODULE PARAMS
     real(8) :: pi_theta(ntheta,ntheta)    
     real(8) :: pi_theta_stat(ntheta)
     
-
-    ! Variables needed for the Tauchen routine
-    integer :: NVAR,nlag=1
-    integer :: nval(10)
-    integer :: nsm
-    real(prec) :: theta(100)		   ! 1:nvar = constant
-    ! nvar*nvar = autoregressive matrix
-    ! nvar*nvar = epsilons var cov matrix
-
-    ! Parameters derived from Tauchen procedure (Markov)
-    real(prec),allocatable :: mstae(:)			 ! Stationary distribution of e
-    real(prec),allocatable :: mstates(:)		 ! Matrix of states e1,e2
-    real(prec),allocatable :: mprobs(:,:)      ! Transition probabilities
-
-
     ! Points in grid of assets 
     real(prec),dimension(na)::grida
 
@@ -164,43 +149,24 @@ MODULE PARAMS
 
 
     ! Output
-    real(prec),allocatable:: matresul(:,:,:,:)
+    !real(prec),allocatable:: matresul(:,:,:,:)
 
 
     ! Tax code
-    !real(prec):: a2
-    !real(prec),allocatable:: a0(:)
-    !real(prec),allocatable:: a1(:)
-    !real(prec),allocatable:: tauk(:)
-
-    !real(8),parameter:: tk=0.283d0
-    !real(8),parameter:: theta0=0.940d0 !0.917d0
     real(8) :: theta0
     real(8),parameter:: theta1=0.183d0 !0.137d0
     real(8),parameter:: tau_max = 0.396d0
     real(8) :: yb_cutoff
     
     real(8), parameter :: tau_estate = 0.1d0
-    real(8), parameter :: a_estate = 0.5d0
-
-
-    real(prec)::maxa0,maxa1,mina0,mina1
-    real(prec)::maxtauk,mintauk
-
-    integer:: a0c,a1c	
-    integer:: taukc			
+    real(8), parameter :: a_estate = 0.5d0		
 
     !real(prec):: govcons
     real(8), parameter :: Govcons = 0.5d0 !25.5490651400000d0
     real(8) :: GovconsN
 
-    real(prec)::socwelf2,optr,optw,optN,optK
-    real(prec),dimension(5):: opttax
-    real(prec),dimension(nty,ns,na,J,n_ofsh)::optvfun,optcfun,optlfun,optafun
-
     ! Asset distribution
     real(prec),dimension(na):: Adis
-
 
     ! Average variables by age and type
     real(prec),dimension(J,nty,n_ofsh):: abartype,astartbartype,lbartype,labartype
@@ -211,32 +177,14 @@ MODULE PARAMS
     real(prec):: r, w, N, LabS, K, As, Astart, Y, C, Tr, exdem, Totinctax, hours, Transagg, stdle, stdleini
     real(8) :: YauxS, AftTaxauxS, TaxCS, TaxE
     real(8) :: rbar
-    real(8) :: AAgg, RetAgg
+    real(8) :: AAgg, RetAgg, HrsAgg
     real(8) :: RAgg, RauxAgg, LAgg, CAgg
     real(8) :: TaxInc, TaxC, TaxTot
     real(8) :: TaxIncAboveYb, YfBelowYb, DBelowYb
     real(8) :: TotOffshCost
 
-
-    ! Social security taxes and benefits
-    !real(prec),parameter:: taup=0.124,maxSSrat=87000.0/37748.0
-
-    !real(prec):: maxSS
-    !real(prec):: SS,SSn,TotSStax
-
-
     ! Bequest 
-    real(prec):: TrB,TrBn !,Trstart
-
-
-    ! Welfare measures
-    real(prec),dimension(nty,ns,na,J):: equivar,equivarss
-    real(prec):: equiss
-    
-
-    
-
-    !integer :: jj_glob
+    real(prec):: TrB,TrBn 
 
 
     !===========================================================================
@@ -300,7 +248,7 @@ CONTAINS
     subroutine LABOR
         ! THIS SUBROUTINE DEFINES THE STOCHASTIC PROCESS FOR LABOR PRODUCTIVITY
         !use params
-        use TAUCHEN_mod, only: tauchen_pareto
+        use TAUCHEN_mod, only: discretize_w_pareto
 
         implicit none
         
@@ -324,7 +272,7 @@ CONTAINS
         pareto_cutoff = 0.9d0
         m_tauch = 2.7d0  
         alpha_pareto = 1.9d0
-        call tauchen_pareto(sig_z, rho_z, nz, m_tauch, pareto_cutoff, alpha_pareto, eta, pi)
+        call discretize_w_pareto(sig_z, rho_z, nz, m_tauch, pareto_cutoff, alpha_pareto, eta, pi)
         p0(1,:) = 1d0/dble(nz) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
 
         dist = 1d0
@@ -387,8 +335,8 @@ CONTAINS
         !bbeta	= beta_S
         delta	= delta_S
         
-        bbeta = 0.989d0!0.959d0
-        chi = 17.4d0        
+        bbeta = 0.945d0 !0.980d0 !0.989d0!0.959d0
+        chi = 500.0d0 !250.0d0 !45.0d0 !25.0d0 !20.0d0 !17.4d0        
 
     end subroutine PREFERENCE     
     
@@ -590,6 +538,8 @@ CONTAINS
         
         if (y >= yb_cutoff) then
             res = 1d0-tau_max    
+        !if (y <= 0d0) then
+        !    res = 1.0d0
         else
             res = theta0*(1d0-theta1)*y**(-theta1)
         end if
@@ -620,6 +570,19 @@ CONTAINS
     
     end function after_tax_income_aux
     
+    
+    function rfunc_PE(a, theta, kappa)
+        real(8), intent(in) :: a
+        real(8), intent(in) :: theta
+        real(8), intent(in) :: kappa
+        real(8) :: om
+        real(8) :: rfunc_PE
+
+        om = Omega(a,theta)
+        rfunc_PE = rR*kappa*om
+
+    end function rfunc_PE
+    
     function rfunc(a, theta, kappa)
         real(8), intent(in) :: a
         real(8), intent(in) :: theta
@@ -628,7 +591,7 @@ CONTAINS
         real(8) :: rfunc
         
         om = Omega(a,theta)
-        rfunc = rbar + rF*(1.0d0-om) + rR*kappa*om
+        rfunc = max(0d0, rbar + rF*(1.0d0-om) + rR*kappa*om)
         
     end function rfunc
     
