@@ -288,8 +288,6 @@ contains
         !	print '(a,f10.7)', "  Avg tax rate= ", Totinctax/(Y-delta*As/(1.0+nn))
         !	print '(a,3f12.7)',"  Total bequest=",Tr,Y,Tr/Y
         !	end if
-
-
         !r	= ngues1
         !N	= ngues2
         !!a2	= ngues3
@@ -309,7 +307,6 @@ contains
         !newton_res(1) = r
         !newton_res(2) = AAgg/((1.0+nn)*Y)
         !newton_res(3) = hours
-        
     end subroutine newton    
 
     subroutine klp(x, F, nx, m, sim_moms_2save)
