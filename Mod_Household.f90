@@ -106,10 +106,20 @@ contains
         integer :: ih
         logical :: solver_failed    
         real(8) :: asol, rtmp, ytmp !, net_inc_ofsh, net_inc_nofsh 
-
+        
+        integer, parameter :: ntest = 20
+        integer :: itest
+        real(8) :: test_h(ntest), dh
+        real(8) :: xtest(2, ntest), ftest(2, ntest)
+        integer :: iu
+        real(8) :: hlo_test, hhi_test
+        
+        
         external static_focs
         external static_focs_ofsh
         external static_focs_nofsh
+        
+        
 
         
         IERSVR = 0
@@ -388,12 +398,13 @@ contains
                                     lambda_mod = cons**(-sig1)/(1d0+tauc)
                                     
                                     if (ia == 1) then
-                                        xguess = [grida(ia), 0.5d0]
+                                        xguess = [grida(ia), 0.5d0] ![-0.1d0, 0.1d0]
+                                        !xguess = [grida(ia), 0.0134549473684211d0] ![grida(ia), 0.1008199d0] ![grida(ia), 0.5d0]
                                     else
                                         xguess = xsols(:, ia-1, jj, itheta, ikappa, iz, ixi, jc)
                                     end if
                     
-                                    !call static_focs(xguess, fvals, 2)
+                                    call static_focs(xguess, fvals, 2)
                                     call d_NEQNF (static_focs, xsol, xguess=xguess, fnorm=fnorm)
                                     !fnorm_test = sum(fvals**2d0)/2d0
 
@@ -401,6 +412,18 @@ contains
                                     !if (ia == 103 .and. iz == 8) then
                                         !print *, 'WARNING: solver failed'
                                         solver_failed = .true.
+                                        !call static_focs_nofsh(xguess, fvals, 2)
+                                        !hlo_test = 0.05d0 !0.0121d0 !0.010d0
+                                        !hhi_test = 0.1d0 !0.0142d0 !0.050d0
+                                        !dh = (hhi_test-hlo_test)/(ntest-1) 
+                                        !test_h = [(dh*(itest-1), itest=1,ntest)] + hlo_test
+                                        !open(newunit=iu, file='test_foc_static.txt')
+                                        !do itest = 1, ntest
+                                        !    xtest(:,itest) = [xguess(1), test_h(itest)]
+                                        !    call static_focs_nofsh(xtest(:,itest), ftest(:,itest), 2)
+                                        !    write(iu, '(4f25.16)') xtest(1,itest), xtest(2,itest), ftest(1,itest), ftest(2,itest)
+                                        !end do
+                                        !close(iu)
                                         call d_NEQNF (static_focs_nofsh, xsol, xguess=xguess, fnorm=fnorm)
                                         if (fnorm > 1d-6) then
                                             print *, 'WARNING: solver failed in no-offshoring'
