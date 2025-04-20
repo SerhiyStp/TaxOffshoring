@@ -186,7 +186,6 @@ MODULE PARAMS
     ! Bequest 
     real(prec):: TrB,TrBn 
 
-
     !===========================================================================
     ! FUNCTIONS
     !===========================================================================
@@ -870,7 +869,8 @@ CONTAINS
         
         open(newunit=iu, file='MC_b20.txt')
         do i = 1, nz
-            read(iu, '(<nz+2>f26.16)'), tmp(i), logzvals(i), prob(i,:)    
+            read(iu, '(<nz+2>f26.16)'), tmp(i), logzvals(i), prob(i,:)   
+            print *, sum(prob(i, :))
         end do
         close(iu)
         s_z = tmp(1)

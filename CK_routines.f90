@@ -163,12 +163,12 @@ contains
 
             call fun(gues1,gues2,gues3,gues4,fval1,fval2,fval3,fval4)
 
-            ngues1=TFP*alpha*( AAgg/(LAgg*(1.0+nn)) )**(alpha-1.0)-delta
+            ngues1= max( TFP*alpha*( AAgg/(LAgg*(1.0+nn)) )**(alpha-1.0)-delta, 0.01d0)
             !ngues2=LabS
             ngues2 = ngues1 - RauxAgg/AAgg 
             !ngues4=gues4
             !Govcons = 25.5490651400000d0
-            ngues3 = (YfBelowYb + TaxC + TaxIncAboveYb + TaxE - Govcons - RetAgg)/DBelowYb
+            ngues3 = max( (YfBelowYb + TaxC + TaxIncAboveYb + TaxE - Govcons - RetAgg)/DBelowYb, 0.01d0)
             if (ngues3 < 0d0) then
                 print *,'WARING: Negative guess for theta0'
             end if
@@ -288,8 +288,6 @@ contains
         !	print '(a,f10.7)', "  Avg tax rate= ", Totinctax/(Y-delta*As/(1.0+nn))
         !	print '(a,3f12.7)',"  Total bequest=",Tr,Y,Tr/Y
         !	end if
-
-
         !r	= ngues1
         !N	= ngues2
         !!a2	= ngues3
@@ -309,7 +307,6 @@ contains
         !newton_res(1) = r
         !newton_res(2) = AAgg/((1.0+nn)*Y)
         !newton_res(3) = hours
-        
     end subroutine newton    
 
     subroutine klp(x, F, nx, m, sim_moms_2save)
