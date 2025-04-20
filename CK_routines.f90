@@ -1,22 +1,11 @@
 module CK_routines
     
     implicit none
-    real(8):: newton_res(3)
+    !real(8):: newton_res(3)
     
 contains
     
-    subroutine initialize()
-        !use moments
-        use PARAMS, only: SetParams
-        use Mod_Distribution, only: init_distr
-
-        call SetParams()
-        !call set_moments()
-        call init_distr()
-        
-        !call allocate_policy_fns()
-        
-    end subroutine initialize    
+  
     
     subroutine resid(x1,x2,x3,x4,fv1,fv2,fv3,fv4)
         use params
@@ -102,7 +91,8 @@ contains
             CLOSE(iunit)    
         end if
         call tic()
-        call Distribution(save_res=.false.)
+        call GetDistribution(save_res=.false.)
+        call SummarizeDistribution()
         print *, 'Simulation took: '
         call toc()
 
@@ -147,7 +137,7 @@ contains
         implicit none
 
         integer::i
-        real(prec)::tol=0.000001d0 !0.0025 
+        real(prec)::tol=0.0001d0 !0.000001d0 !0.0025 
         real(prec):: gues1,gues2,gues3,gues4 !,gues5
         real(prec):: ngues1,ngues2,ngues3,ngues4 !,ngues5
         real(prec):: fval1,fval2,fval3,fval4 !,fval5
@@ -179,6 +169,9 @@ contains
             !ngues4=gues4
             !Govcons = 25.5490651400000d0
             ngues3 = (YfBelowYb + TaxC + TaxIncAboveYb + TaxE - Govcons - RetAgg)/DBelowYb
+            if (ngues3 < 0d0) then
+                print *,'WARING: Negative guess for theta0'
+            end if
             ngues4=TrBn 
             !ngues5=SSn  
             !ngues5=gues5
@@ -191,15 +184,15 @@ contains
 
             ! With Gouveia-Strauss: Updating a2
 
-            errel	=0.000000001
-            errabs	=0.0000000001
-            epss	=0.1
-            etas	=1.0
-            nroot	=1
-            itmax	=1000
-            xguess	=gues3
-            low		=0.00000001
-            high	=10.0**20
+            !errel	=0.000000001
+            !errabs	=0.0000000001
+            !epss	=0.1
+            !etas	=1.0
+            !nroot	=1
+            !itmax	=1000
+            !xguess	=gues3
+            !low		=0.00000001
+            !high	=10.0**20
 
             !call dzbren(taxfn,errabs,errel,low,high,itmax)
             !ngues3=high
@@ -254,6 +247,7 @@ contains
         end do
 
         print *, ' ' 
+
         print *, "Convergence achieved in ",i," Iterations"
 
 

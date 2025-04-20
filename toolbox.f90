@@ -40,57 +40,58 @@ SUBROUTINE lorenz(f,x,fx,gini)
     deallocate(key)
 END SUBROUTINE lorenz
 
-SUBROUTINE lorenz_s(f,x,fx,gini,xordered,lorenz_x,lorenz_y)
+SUBROUTINE lorenz_s(f,x,ford,xord,lorenz_x,lorenz_y,gini,key)
 ! Compute Lorenz curve and Gini coefficient by sorting vector x and using density f
-! Note: to link dlasrt2 add mkl_scalapack_core.lib to project's additional dependencies
+! xordered
+! Note: to link dlasrt2, add mkl_scalapack_core.lib to project's additional dependencies
 	IMPLICIT NONE
 	REAL(WP), DIMENSION(:), INTENT(IN) :: f
 	REAL(WP), DIMENSION(:), INTENT(IN) :: x
     !real(wp), allocatable :: xtmp(:)
-    real(wp), intent(out) :: xordered(:)
-	REAL(WP), DIMENSION(:), INTENT(OUT) :: fx
+    real(wp), intent(out) :: xord(:)
+	REAL(WP), DIMENSION(:), INTENT(OUT) :: ford
     real(wp), dimension(:), intent(out) :: lorenz_x
     real(wp), dimension(:), intent(out) :: lorenz_y
 	REAL(WP), INTENT(OUT) :: gini
 	!INTEGER, DIMENSION(size(x)) :: key
-    INTEGER, ALLOCATABLE :: key(:)
+    INTEGER, dimension(:), intent(inout) :: key(:)
 	INTEGER :: n,i,info
     
 	n=size(x)
-    allocate(key(n))
+    !allocate(key(n))
     !allocate(xtmp(n))
 	IF (size(f)/=n) THEN
 		PRINT '(a,i3)', 'lorenz: x and f must be of the same size ',n
 		STOP 'program terminated by lorenz'
 	END IF
-	IF (size(fx)/=n) THEN
+	IF (size(ford)/=n) THEN
 		PRINT '(a,i3)', 'lorenz: x and fx must be of the same size ',n
 		STOP 'program terminated by lorenz'
 	END IF
 	key=(/ (i,i=1,n) /)
-    xordered = x
-	CALL dlasrt2('I',n,xordered,key,info)
+    xord = x
+	CALL dlasrt2('I',n,xord,key,info)
 	CALL check('dlasrt2',info)
     !x_sorted = x
-	fx=f(key)
-    lorenz_x = fx
+	ford=f(key)
+    lorenz_x = ford
     !f_sorted=f(key)
 	!x=x*fx
-    lorenz_y = xordered*fx
+    lorenz_y = xord*ford
 	!gini=x(1)*fx(1)
-    gini=lorenz_y(1)*fx(1)
+    gini=lorenz_y(1)*ford(1)
 	DO i=2,n
 		!x(i)=x(i)+x(i-1)
         lorenz_y(i)=lorenz_y(i)+lorenz_y(i-1)
 		!gini=gini+(x(i)+x(i-1))*fx(i)
-        gini=gini+(lorenz_y(i)+lorenz_y(i-1))*fx(i)
+        gini=gini+(lorenz_y(i)+lorenz_y(i-1))*ford(i)
 		!fx(i)=fx(i)+fx(i-1)
         lorenz_x(i)=lorenz_x(i)+lorenz_x(i-1)
 	END DO
 	gini=1-gini/lorenz_y(n)
 	!x=x/x(n)
     lorenz_y=lorenz_y/lorenz_y(n)
-    deallocate(key)
+    !deallocate(key)
     !deallocate(xtmp)
 END SUBROUTINE lorenz_s
 

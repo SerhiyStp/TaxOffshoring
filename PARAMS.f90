@@ -45,7 +45,7 @@ MODULE PARAMS
 
 
     ! Population
-    integer,parameter:: jr = 46
+    integer,parameter:: Jr = 46
     integer,parameter:: J = 81
     integer,parameter:: Tret = J-Jr+1
     integer,parameter:: Twork = Jr-1
@@ -99,8 +99,8 @@ MODULE PARAMS
     real(prec),parameter:: blimit=0.0
 
     ! Wage shocks and transition probabilities
-    real(8) :: sig_z = 0.40d0 !0.05d0 !0.02d0
-    real(8) :: rho_z = 0.95d0 !0.8d0
+    real(8) :: sig_z = 0.58d0 !0.05d0 !0.02d0
+    real(8) :: rho_z = 0.973d0 !0.95d0 !0.8d0
     real(8) :: sig_xi = 0.25d0
     real(prec),dimension(nz,nz)::pi
     real(8) :: eta(nz)
@@ -120,7 +120,7 @@ MODULE PARAMS
     real(8), parameter :: omega1 = 0.072d0
     real(8), parameter :: omega2 = 0.20d0
     real(8), parameter :: gamma_omega = 0.30d0
-    real(8), parameter :: abar_omega = 0.0d0
+    real(8), parameter :: abar_omega = 6.15000016987324d0 !10.0d0 !0.1d0 !0.0d0
     real(8), parameter :: omegabar = 0.4d0
     real(8), parameter :: rF = 0.01d0 !0.00d0 !0.0d0 !0.03d0 !0.01d0
     real(8), parameter :: rR = 0.15d0 !0.14d0 !0.13d0 !0.12d0 !0.11d0 !0.15d0 !0.09d0 !0.06d0
@@ -248,7 +248,7 @@ CONTAINS
     subroutine LABOR
         ! THIS SUBROUTINE DEFINES THE STOCHASTIC PROCESS FOR LABOR PRODUCTIVITY
         !use params
-        use TAUCHEN_mod, only: discretize_w_pareto
+        !use TAUCHEN_mod, only: read_mc
 
         implicit none
         
@@ -272,7 +272,8 @@ CONTAINS
         pareto_cutoff = 0.9d0
         m_tauch = 2.7d0  
         alpha_pareto = 1.9d0
-        call discretize_w_pareto(sig_z, rho_z, nz, m_tauch, pareto_cutoff, alpha_pareto, eta, pi)
+        !call discretize_w_pareto(sig_z, rho_z, nz, m_tauch, pareto_cutoff, alpha_pareto, eta, pi)
+        call read_mc(eta, pi)
         p0(1,:) = 1d0/dble(nz) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
 
         dist = 1d0
@@ -316,7 +317,8 @@ CONTAINS
         !real(prec),parameter::scale=6000.0,curv=1.1 !2.5
         !real(prec),parameter::scale=40000.0,curv=1.1 !2.5
         !real(prec),parameter::scale=2000.0,curv=1.2
-        real(prec),parameter::scale=150.0,curv=1.0 !2
+        real(prec),parameter::scale=15000.0d0 !800.0d0 !500.0d0 !150.0
+        real(prec),parameter::curv=1.0 !2
         real(prec)::step
 
         grida(1)=blimit
@@ -512,6 +514,8 @@ CONTAINS
         do i = 1,J
             mu(i) = Nu(i)/sum(Nu)
         end do
+        
+        print *, 'Sum(mu) = ', sum(mu)
 
         ! open(unit=32,file='measpop.txt')
         ! rewind(32)
@@ -855,4 +859,24 @@ CONTAINS
     end subroutine basefun
     !==========================================================================
 
+    
+    subroutine read_mc(zvals, prob)
+        !use PARAMS, only: nz
+        integer :: i, iu
+        real(8) :: prob(nz,nz)
+        real(8) :: zvals(nz), logzvals(nz)
+        real(8) :: tmp(nz)
+        real(8) :: s_z, m_z
+        
+        open(newunit=iu, file='MC_b20.txt')
+        do i = 1, nz
+            read(iu, '(<nz+2>f26.16)'), tmp(i), logzvals(i), prob(i,:)    
+        end do
+        close(iu)
+        s_z = tmp(1)
+        m_z = tmp(3)   
+        zvals = exp(logzvals)
+    end subroutine read_mc    
+    
+    
 ENDMODULE PARAMS

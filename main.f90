@@ -10,6 +10,16 @@ program main
     
 contains
     
+    subroutine initialize()
+        use PARAMS, only: SetParams
+        use Mod_Distribution, only: init_distr
+
+        call SetParams()
+        call init_distr()
+        
+    end subroutine initialize      
+    
+    
     subroutine test_run()
         real(8) :: guesr,guesN,guesB,guesS, guesrb, guestheta0
         integer :: iu
