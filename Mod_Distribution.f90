@@ -258,6 +258,7 @@ contains
     
     subroutine SummarizeDistribution()
         use params
+        use Taxes
         use Mod_Household, only: afun, cfun, lfun, afun_ret, cfun_ret, offshoring, offshoring_ret
         use MyLinInterp
         use toolbox

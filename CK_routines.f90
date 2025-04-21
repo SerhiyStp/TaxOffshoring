@@ -9,6 +9,7 @@ contains
     
     subroutine resid(x1,x2,x3,x4,fv1,fv2,fv3,fv4)
         use params
+        use Taxes
         use Mod_Household
         use Mod_Distribution
         use int_tictoc
@@ -133,6 +134,7 @@ contains
         ! delivers the residual from markets clearing in the asset market, labor market and the gvernment budget constraint
 
         use params
+        use Taxes
 
         implicit none
 

@@ -5,8 +5,8 @@ module focs_mod
 contains
 
     function static_focs_BL_h(hrs) 
-        use params, only: chi, sig2, sig1, d_after_tax_income, after_tax_income, TrB, tauc, frac_ofsh
-        !use Mod_Household, only: rcur_mod, w_mod, theta_mod, kappa_mod, c_mod, a_mod, ap_mod
+        use params, only: chi, sig2, sig1, TrB, frac_ofsh
+        use Taxes
         use glob_vars_mod, only: r_glob, a_glob, w_glob, ap_glob, c_glob, psi_glob
         !
         real(8), intent(in) :: hrs

@@ -83,11 +83,7 @@ MODULE PARAMS
     real(prec),parameter:: alpha= 0.36
     real(prec),parameter:: TFP	= 1.0
 
-    ! Government Policies
-    !real(prec),parameter:: govconsNS	= 6.670 ! Gov't consumption Non Separable utility
-    !real(prec),parameter:: govconsS		= 5.870 ! Gov't consumption Separable utility
-
-    real(prec),parameter:: tauc=0.05 	!Consumption tax
+    !real(prec),parameter:: tauc=0.05 	!Consumption tax
     !real(prec),parameter:: b=0.5		!Social Security Replacement Rate
 
 
@@ -152,18 +148,18 @@ MODULE PARAMS
     !real(prec),allocatable:: matresul(:,:,:,:)
 
 
-    ! Tax code
-    real(8) :: theta0
-    real(8),parameter:: theta1=0.183d0 !0.137d0
-    real(8),parameter:: tau_max = 0.396d0
-    real(8) :: yb_cutoff
-    
-    real(8), parameter :: tau_estate = 0.1d0
-    real(8), parameter :: a_estate = 0.5d0		
-
-    !real(prec):: govcons
-    real(8), parameter :: Govcons = 0.5d0 !25.5490651400000d0
-    real(8) :: GovconsN
+    !! Tax code
+    !real(8) :: theta0
+    !real(8),parameter:: theta1=0.183d0 !0.137d0
+    !real(8),parameter:: tau_max = 0.396d0
+    !real(8) :: yb_cutoff
+    !
+    !real(8), parameter :: tau_estate = 0.1d0
+    !real(8), parameter :: a_estate = 0.5d0		
+    !
+    !!real(prec):: govcons
+    !real(8), parameter :: Govcons = 0.5d0 !25.5490651400000d0
+    !real(8) :: GovconsN
 
     ! Asset distribution
     real(prec),dimension(na):: Adis
@@ -525,53 +521,6 @@ CONTAINS
         topop=sum(Nu)
 
     end subroutine DEMOGRAPHICS !    
-    
-    
-    function tax_income(y) result(res)
-        real(8), intent(in) :: y
-        real(8) :: res
-        
-        res = y - after_tax_income(y)
-    end function tax_income
-    
-    
-    function D_after_tax_income(y) result(res)
-        real(8), intent(in) :: y
-        real(8) :: res
-        
-        if (y >= yb_cutoff) then
-            res = 1d0-tau_max    
-        !if (y <= 0d0) then
-        !    res = 1.0d0
-        else
-            res = theta0*(1d0-theta1)*y**(-theta1)
-        end if
-        
-    end function D_after_tax_income
-    
-    
-    elemental function after_tax_income(y) result(res)
-        real(8), intent(in) :: y
-        real(8) :: res
-        
-        res = theta0*min(yb_cutoff,y)**(1d0-theta1) + (1d0-tau_max)*max(0d0, y-yb_cutoff)
-    
-    end function after_tax_income
-    
-    
-    function after_tax_income_aux(y) result(res)
-        real(8), intent(in) :: y
-        real(8) :: res
-        
-        if (y >= yb_cutoff) then
-            res = yb_cutoff**(1d0-theta1)
-            !res = theta0*yb_cutoff**(1d0-theta1)
-        else
-            res = y**(1d0-theta1)
-            !res = theta0*y**(1d0-theta1)
-        end if
-    
-    end function after_tax_income_aux
     
     
     function rfunc_PE(a, theta, kappa)

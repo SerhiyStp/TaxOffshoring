@@ -47,14 +47,18 @@ contains
     
     
     subroutine SolveHH(save_res)
-    use params
-    use MyLinInterp 
-    !use zbren_int
-    use NEQNF_INT
-    !use int_tictoc
-    use root_module
-    use focs_mod
-    use glob_vars_mod
+        use params
+        use Taxes
+        use MyLinInterp 
+        !use zbren_int
+        use NEQNF_INT
+        !use int_tictoc
+        use root_module
+        use focs_mod
+        use glob_vars_mod
+        
+        implicit none
+        
         logical :: save_res
         integer :: ia, nq, scp
         real(8) :: cons, lab
@@ -784,6 +788,10 @@ contains
     end subroutine check_focs_on_grid_2d 
     
     function ap_bc(a, c, h, r, w) result(res)
+        use Taxes
+        
+        implicit none
+        
         real(8), intent(in) :: a
         real(8), intent(in) :: c
         real(8), intent(in) :: h
@@ -808,6 +816,10 @@ contains
     end function ap_bc
     
     function test_bc(a, c, h, r, w, ap) result(res)
+        use Taxes
+        
+        implicit none
+        
         real(8), intent(in) :: a
         real(8), intent(in) :: c
         real(8), intent(in) :: h
