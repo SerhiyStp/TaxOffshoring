@@ -6,15 +6,11 @@ MODULE PARAMS
 
     integer,parameter:: prec=selected_real_kind(15,307)
 
-    integer, parameter :: n_moms = 6 !19
-    integer, parameter :: klp_n_moms = 6
     integer :: nm_iter
 
     integer, parameter :: file_res_id = 52
 
     ! Offshoring
-    !real(8) :: Share_Offshoring, share_off_dist(5), wealth_obs_dist(6), wealth_tot_dist(6),income_dist(6), lab_income_dist(6)
-    !real(prec):: qd, qw, qwd
     real(prec),parameter:: psi_offshore=2.5d0 !1.5d0 !0.5d0
     integer,parameter:: n_ofsh=3 !1 !3
     !real(prec),parameter:: psi_vals(n_ofsh)=[psi_offshore-0.5d0, psi_offshore, psi_offshore+3.5d0]
@@ -53,23 +49,7 @@ MODULE PARAMS
 
 
     ! Indicators
-    !integer:: ind_pref 
-    ! = 1 non-separable 
-    ! = 2 separable preference
-    !integer:: indext 
-    ! = 1 for benchmark with Gouveia-Strauss tax function
-
-    ! Parameters to be calibrated for each preference specs (to be calibrated)
-    !real(prec),parameter:: beta_S	= 0.959d0 !0.98d0 !0.974 !0.9750 !0.97172 !1.2d0 
-    !real(prec) :: beta_S
     real(prec),parameter:: delta_S	= 0.0833d0  !0.045d0 !0.0780 !0.0833 
-
-    !real(prec),parameter:: beta_NS	= 1.00093 
-    !real(prec),parameter:: delta_NS	= 0.0833  
-
-    ! (1) parameters for NON-separable preference
-    !real(prec),parameter:: gamma	= 0.377 
-    !real(prec),parameter:: sigma	= 4.0		
 
     ! (2) parameters for separable preference
     !real(prec),parameter:: chi	= 17.5d0 !3.70 !3.55 !3.20 !2.15 !2.05 !1.95 !1.92 ! to be calibrated  
@@ -83,20 +63,12 @@ MODULE PARAMS
     real(prec),parameter:: alpha= 0.36
     real(prec),parameter:: TFP	= 1.0
 
-    !real(prec),parameter:: tauc=0.05 	!Consumption tax
-    !real(prec),parameter:: b=0.5		!Social Security Replacement Rate
-
-
-    !real(prec),parameter::umin=-1.0E+2
-    !real(prec),parameter::penscale=10000000
-    !real(prec),parameter::maxl=0.99
-
     ! Value of the borrowing constraint
     real(prec),parameter:: blimit=0.0
 
     ! Wage shocks and transition probabilities
-    real(8) :: sig_z = 0.58d0 !0.05d0 !0.02d0
-    real(8) :: rho_z = 0.973d0 !0.95d0 !0.8d0
+    real(8) :: sig_z = 0.50d0 !0.58d0 !0.05d0 !0.02d0
+    real(8) :: rho_z = 0.9d0 !0.973d0 !0.95d0 !0.8d0
     real(8) :: sig_xi = 0.25d0
     real(prec),dimension(nz,nz)::pi
     real(8) :: eta(nz)
@@ -108,26 +80,6 @@ MODULE PARAMS
     
     ! Retirement
     real(8) :: b_ret(nz)
-
-    
-    !real(8)::pstat(1,ns)
-    
-    ! Heterogeneous returns
-    real(8), parameter :: omega1 = 0.072d0
-    real(8), parameter :: omega2 = 0.20d0
-    real(8), parameter :: gamma_omega = 0.30d0
-    real(8), parameter :: abar_omega = 6.15000016987324d0 !10.0d0 !0.1d0 !0.0d0
-    real(8), parameter :: omegabar = 0.4d0
-    real(8), parameter :: rF = 0.01d0 !0.00d0 !0.0d0 !0.03d0 !0.01d0
-    real(8), parameter :: rR = 0.15d0 !0.14d0 !0.13d0 !0.12d0 !0.11d0 !0.15d0 !0.09d0 !0.06d0
-    real(8), parameter :: sig_kappa = 0.05d0
-    integer, parameter :: nkappa = 3 !1 !3 ! Rate of return temporary shocks
-    real(8) :: Kappas(nkappa)
-    real(8) :: pi_kappa(nkappa)
-    integer, parameter :: ntheta=2 !1 !2 ! Rate of return persistent types    
-    real(8) :: thetas(ntheta)  
-    real(8) :: pi_theta(ntheta,ntheta)    
-    real(8) :: pi_theta_stat(ntheta)
     
     ! Points in grid of assets 
     real(prec),dimension(na)::grida
@@ -143,24 +95,6 @@ MODULE PARAMS
     ! Counters
     integer :: sc,ac,lc,jc,tc,date,tyc,agec
 
-
-    ! Output
-    !real(prec),allocatable:: matresul(:,:,:,:)
-
-
-    !! Tax code
-    !real(8) :: theta0
-    !real(8),parameter:: theta1=0.183d0 !0.137d0
-    !real(8),parameter:: tau_max = 0.396d0
-    !real(8) :: yb_cutoff
-    !
-    !real(8), parameter :: tau_estate = 0.1d0
-    !real(8), parameter :: a_estate = 0.5d0		
-    !
-    !!real(prec):: govcons
-    !real(8), parameter :: Govcons = 0.5d0 !25.5490651400000d0
-    !real(8) :: GovconsN
-
     ! Asset distribution
     real(prec),dimension(na):: Adis
 
@@ -172,7 +106,6 @@ MODULE PARAMS
     ! Prices of capital and labor; labor supply and capital stock, and other 
     real(prec):: r, w, N, LabS, K, As, Astart, Y, C, Tr, exdem, Totinctax, hours, Transagg, stdle, stdleini
     real(8) :: YauxS, AftTaxauxS, TaxCS, TaxE
-    real(8) :: rbar
     real(8) :: AAgg, RetAgg, HrsAgg
     real(8) :: RAgg, RauxAgg, LAgg, CAgg
     real(8) :: TaxInc, TaxC, TaxTot
@@ -192,58 +125,28 @@ CONTAINS
     subroutine SetParams()
         !===========================================================================
         ! This subroutine sets the parameters for the model
-        !===========================================================================
+        !===========================================================================    
+        use Het_returns, only: set_returns
+        
+        implicit none
+
         call GRID
         call PREFERENCE
         call DEMOGRAPHICS
         call LABOR
-        call RETURNS()
+        call SET_RETURNS()
         
         ! Offshoring
         psi_vals = [0.1d0, 0.5d0, 1.5d0] 
         psi_prob = [1d0/3d0, 1d0/3d0, 1d0/3d0]
         
     end subroutine SetParams
-    
-    
-    subroutine RETURNS()
-        !use params
-        real(8), parameter :: pi_theta_hl = 0.5d0
-        real(8), parameter :: pi_theta_lh = 0.2d0
-        real(8) :: p0(1, ntheta), p1(1, ntheta)
-        real(8) :: dist
-        integer :: i
         
-        pi_theta(1,:) = [1.0d0 - pi_theta_hl, pi_theta_hl]
-        pi_theta(2,:) = [pi_theta_lh, 1.0d0 - pi_theta_lh]
-        
-        p0(1,:) = 1d0/dble(ntheta) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
-
-        dist = 1d0
-        do i = 1, 500
-            p1 = matmul(p0, pi_theta)
-            dist = sum( (p1 - p0)**2d0 )
-            p0 = p1
-            if (dist < 1d-12) exit
-        end do             
-        pi_theta_stat = p0(1,:)
-        !print *, sum(pi_theta_stat)
-        
-        !pi_theta = 1d0
-        thetas = [1d0, 0.00d0] !1d0 ![1d0, 0d0]
-        
-        Kappas = [-sig_kappa, 0.0d0, +sig_kappa] ![0d0] 
-        Kappas = exp(Kappas)
-        pi_kappa = [0.25d0, 0.5d0, 0.25d0] !1d0 !
-        rbar = 0d0
-        
-    end subroutine RETURNS   
-    
     
     subroutine LABOR
         ! THIS SUBROUTINE DEFINES THE STOCHASTIC PROCESS FOR LABOR PRODUCTIVITY
         !use params
-        !use TAUCHEN_mod, only: read_mc
+        use TAUCHEN_mod, only: discretize_w_pareto
 
         implicit none
         
@@ -267,8 +170,8 @@ CONTAINS
         pareto_cutoff = 0.9d0
         m_tauch = 2.7d0  
         alpha_pareto = 1.9d0
-        !call discretize_w_pareto(sig_z, rho_z, nz, m_tauch, pareto_cutoff, alpha_pareto, eta, pi)
-        call read_mc(eta, pi)
+        call discretize_w_pareto(sig_z, rho_z, nz, m_tauch, pareto_cutoff, alpha_pareto, eta, pi)
+        !call read_mc(eta, pi)
         p0(1,:) = 1d0/dble(nz) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
 
         dist = 1d0
@@ -294,8 +197,6 @@ CONTAINS
         b_ret = 0.4d0*eta
 
     end subroutine LABOR     
-    
-    
     
     subroutine GRID
         ! THIS SUBROUTINE DEFINES GRID FOR INDIVIDUAL ASSET HOLDING
@@ -522,65 +423,6 @@ CONTAINS
 
     end subroutine DEMOGRAPHICS !    
     
-    
-    function rfunc_PE(a, theta, kappa)
-        real(8), intent(in) :: a
-        real(8), intent(in) :: theta
-        real(8), intent(in) :: kappa
-        real(8) :: om
-        real(8) :: rfunc_PE
-
-        om = Omega(a,theta)
-        rfunc_PE = rR*kappa*om
-
-    end function rfunc_PE
-    
-    function rfunc(a, theta, kappa)
-        real(8), intent(in) :: a
-        real(8), intent(in) :: theta
-        real(8), intent(in) :: kappa
-        real(8) :: om
-        real(8) :: rfunc
-        
-        om = Omega(a,theta)
-        rfunc = max(0d0, rbar + rF*(1.0d0-om) + rR*kappa*om)
-        
-    end function rfunc
-    
-    function Da_rfunc(a, theta, kappa)
-        real(8), intent(in) :: a
-        real(8), intent(in) :: theta
-        real(8), intent(in) :: kappa
-        real(8) :: Da_om
-        real(8) :: Da_rfunc
-        
-        Da_om = DaOmega(a, theta)
-        Da_rfunc = (rR*kappa - rF)*Da_om
-    end function Da_rfunc
-    
-    function Omega(a, theta)
-        real(8), intent(in) :: a
-        real(8), intent(in) :: theta
-        real(8) :: Omega
-        
-        Omega = theta*(omegabar + min( omega1*( max(a - abar_omega, 0.0d0) )**gamma_omega, omega2 ) )
-    end function Omega
-    
-    function DaOmega(a, theta)
-        real(8), intent(in) :: a
-        real(8), intent(in) :: theta
-        real(8) :: DaOmega
-        real(8) :: tmp
-        
-        tmp = omega1*( max(a - abar_omega, 0.0d0) )**gamma_omega
-        if (a <= abar_omega .or. tmp >= omega2) then
-            DaOmega = 0d0
-        else
-            DaOmega = theta*omega1*gamma_omega*(a - abar_omega)**(gamma_omega-1.0d0)
-        end if
-        
-    end function DaOmega
-
     !==========================================================================
     function U(c,l)
         !==========================================================================
@@ -648,165 +490,6 @@ CONTAINS
     end function marginal_utility
     !==========================================================================
 
-
-    !==========================================================================
-    !function Tax2(b0,b1,b2,ear)
-    !    !==========================================================================
-    !
-    !    ! Tax function in Gouveia & Strauss (National Tax Journal, 1994)
-    !
-    !    implicit none
-    !
-    !    real(prec):: Tax2
-    !    real(prec),intent(in):: b0,b1,b2,ear
-    !
-    !    Tax2=0.0
-    !
-    !    if ( b1 >= 0.001 ) then
-    !        if ( ear > 0.0 ) then
-    !            Tax2=b0*( ear - ( ear**(-b1)+b2 )**(-1.0/b1) )
-    !        endif
-    !    endif
-    !
-    !    if (b1 < 0.001 ) then
-    !        if ( ear > 0.0 ) then
-    !            Tax2=b0*ear +b2
-    !        endif
-    !    endif
-    !
-    !end function Tax2
-    !==========================================================================
-
-
-    !==========================================================================
-    !function Tax3(l0,l1,l2,ca0,lear,caear)
-    !    !==========================================================================
-    !
-    !    real(prec):: Tax3
-    !    real(prec),intent(in):: l0,l1,l2,ca0,lear,caear
-    !
-    !
-    !    Tax3=0.0
-    !
-    !    ! Labor Income Tax 
-    !
-    !    if ( l1 >= 0.000001 ) then
-    !        if ( lear >= 0.00000001 ) then
-    !            Tax3 = l0*( lear - ( lear**(-l1)+l2 )**(-1.0/l1) )
-    !        endif
-    !    endif
-    !    if (l1 < 0.000001 ) then
-    !        if ( lear >= 0.00000001 ) then
-    !            Tax3 = l0*lear+l2
-    !        endif
-    !    endif
-    !
-    !
-    !    ! Capital Income Tax
-    !
-    !    Tax3 = Tax3 + ca0*caear
-    !
-    !end function Tax3
-    !==========================================================================
-
-
-    !==========================================================================
-    !function Tax4(earncap,lear,jj)
-    !    !==========================================================================
-    !    real(8):: Tax4
-    !    real(8):: ap, lear, earncap !, caear
-    !    integer:: jj
-    !
-    !    Tax4 = lear - theta0*min(yb_cutoff,lear)**(1.0d0-theta1) - (1.0d0-tau_max)*max(0d0,lear-yb_cutoff)
-    !    Tax4 = Tax4 + tk*earncap
-    !
-    !end function Tax4
-    !==========================================================================
-
-    !==========================================================================
-    !function MarTax2(b0,b1,b2,capear)
-    !    !==========================================================================
-    !
-    !    ! Marginal Taxes for capital
-    !    ! Tax function in Gouveia & Strauss (National Tax Journal, 1994)
-    !
-    !    implicit none
-    !
-    !    real(prec):: MarTax2
-    !    real(prec),intent(in):: b0,b1,b2,capear
-    !
-    !    MarTax2=0.0
-    !
-    !    if ( b1 >= 0.001 ) then
-    !        if ( capear > 0.0 ) then
-    !            MarTax2=b0*( 1.0 - (1.0+b2*capear**b1)**(-1.0/b1 - 1.0) )
-    !        endif
-    !    endif
-    !    if (b1 < 0.001 ) then
-    !        if ( capear > 0.0 ) then
-    !            MarTax2=b0
-    !        endif
-    !    endif
-    !
-    !end function MarTax2
-    !==========================================================================
-
-
-    !==========================================================================
-    !function MarTax3(l0,l1,l2,ca0,lear,caear)
-    !    !==========================================================================
-    !
-    !    real(prec):: MarTax3
-    !    real(prec),intent(in):: l0,l1,l2,ca0,lear,caear
-    !
-    !    ! Marginal Capital Income Tax
-    !    MarTax3=ca0
-    !
-    !
-    !end function MarTax3
-    !==========================================================================
-
-
-
-    !==========================================================================
-    subroutine basefun (grid_x,npx,x,vals,inds) 
-        !==========================================================================
-
-        implicit none
-        ! this subroutine returns the values and the indices of the two basis
-        ! functions that are positive on a given x in the grid_x
-
-        real(prec),intent(in) :: x
-        integer , intent(in):: npx
-        real(prec), intent(in) :: grid_x (npx)
-        real(prec), intent(out) ::vals(2)
-        integer ,intent(out) ::inds(2)
-        integer :: i,ju,jl,jm
-
-        jl=1     
-        ju=npx   	
-
-        do
-
-            if (ju-jl<=1)  exit
-            jm=(ju+jl)/2
-            if (x>=grid_x(jm)) then
-                jl=jm
-            else
-                ju=jm
-            endif
-
-        end do
-
-        i=jl+1
-        vals(2)=( x-grid_x(i-1) )/(grid_x(i)-grid_x(i-1))
-        vals(1)=( grid_x(i)-x )/(grid_x(i)-grid_x(i-1))
-        inds(2)=i
-        inds(1)=i-1
-
-    end subroutine basefun
-    !==========================================================================
-
     
     subroutine read_mc(zvals, prob)
         !use PARAMS, only: nz
@@ -828,4 +511,4 @@ CONTAINS
     end subroutine read_mc    
     
     
-ENDMODULE PARAMS
+END MODULE PARAMS

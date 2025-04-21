@@ -1,8 +1,50 @@
 module MyLinInterp 
+    use nrtype, only: dp
     
     implicit none
     
 contains
+    
+    !==========================================================================
+    subroutine basefun (grid_x,npx,x,vals,inds) 
+    !==========================================================================
+
+        implicit none
+        ! this subroutine returns the values and the indices of the two basis
+        ! functions that are positive on a given x in the grid_x
+
+        real(dp),intent(in) :: x
+        integer , intent(in):: npx
+        real(dp), intent(in) :: grid_x (npx)
+        real(dp), intent(out) ::vals(2)
+        integer ,intent(out) ::inds(2)
+        integer :: i,ju,jl,jm
+
+        jl=1     
+        ju=npx   	
+
+        do
+
+            if (ju-jl<=1)  exit
+            jm=(ju+jl)/2
+            if (x>=grid_x(jm)) then
+                jl=jm
+            else
+                ju=jm
+            endif
+
+        end do
+
+        i=jl+1
+        vals(2)=( x-grid_x(i-1) )/(grid_x(i)-grid_x(i-1))
+        vals(1)=( grid_x(i)-x )/(grid_x(i)-grid_x(i-1))
+        inds(2)=i
+        inds(1)=i-1
+
+    end subroutine basefun
+    !==========================================================================
+    
+    
     
     function LinInterp_1d(x,xGrid,fVals,nx)
         real(8) :: LinInterp_1d

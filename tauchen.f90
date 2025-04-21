@@ -4,94 +4,94 @@ MODULE TAUCHEN_mod
 
 contains
     
-    !subroutine discretize_w_pareto(s_e, rho, nz, m, pareto_cutoff, alpha, zvals, prob)
-        !use toolbox, only: rouwenhorst
-        !real(8) :: s_e
-        !real(8) :: s_z, m_z
-        !real(8) :: rho
-        !integer :: nz
-        !real(8) :: m
-        !real(8) :: pareto_cutoff
-        !real(8) :: x_norm_cutoff
-        !real(8) :: logz_norm_cutoff        
-        !real(8) :: alpha
-        !real(8) :: zvals(nz), logzvals(nz)
-        !real(8) :: prob(nz,nz)
-        !real(8) :: pstat(nz), cdfstat(nz), cdfstat_test(nz)      
-        !integer, parameter :: ntmp=1
-        !real(8) :: atmp(ntmp)
-        !real(8) :: ytmp(ntmp)     
-        !integer :: i
-        !integer :: npareto
-        !real(8) :: s_e_row, prob_row(nz, nz), logzvals_row(nz), pstat_row(nz)
-        !integer :: iu
-        !real(8) :: tmp(nz)
-        !real(8) :: p0(1,nz), p1(1,nz), dist
-        !
-        !!atmp = [pareto_cutoff]
-        !!call vdcdfnorminv(ntmp, atmp, ytmp)
-        !!x_norm_cutoff = ytmp(1)
-        !!s_z = s_e/sqrt(1d0-rho**2d0)
-        !!z_norm_cutoff = x_norm_cutoff*s_z        
-        !
-        !!call tauchen(s_e, rho, nz, m, logzvals, prob, pstat)
-        !s_e_row = s_e/sqrt(1d0-rho**2d0)
-        !!!call rouwenhorst(rho, s_e_row, prob_row, logzvals_row, pstat_row)
-        !
-        !! Note: rouwenhorst assumes y(t) = rho y(t-1)+ sigma sqrt(1-rho^2) e(t),   e(t)~N(0,1)
-        !call rouwenhorst(rho, s_e_row, prob, logzvals, pstat)
-        !
-        !do i = 1, nz
-        !    print *, sum(prob(i,:))
-        !end do
+    subroutine discretize_w_pareto(s_e, rho, nz, m, pareto_cutoff, alpha, zvals, prob)
+        use toolbox, only: rouwenhorst
+        real(8) :: s_e
+        real(8) :: s_z, m_z
+        real(8) :: rho
+        integer :: nz
+        real(8) :: m
+        real(8) :: pareto_cutoff
+        real(8) :: x_norm_cutoff
+        real(8) :: logz_norm_cutoff        
+        real(8) :: alpha
+        real(8) :: zvals(nz), logzvals(nz)
+        real(8) :: prob(nz,nz)
+        real(8) :: pstat(nz), cdfstat(nz), cdfstat_test(nz)      
+        integer, parameter :: ntmp=1
+        real(8) :: atmp(ntmp)
+        real(8) :: ytmp(ntmp)     
+        integer :: i
+        integer :: npareto
+        real(8) :: s_e_row, prob_row(nz, nz), logzvals_row(nz), pstat_row(nz)
+        integer :: iu
+        real(8) :: tmp(nz)
+        real(8) :: p0(1,nz), p1(1,nz), dist
+        
         !atmp = [pareto_cutoff]
         !call vdcdfnorminv(ntmp, atmp, ytmp)
         !x_norm_cutoff = ytmp(1)
-        !!s_z = s_e/sqrt(1d0-rho**2d0)
-        !logz_norm_cutoff = x_norm_cutoff*s_z !+ m_z         
-        !
-        !
-        !!do i = 1, nz
-        !!    print *, sum(prob_row(i,:))
-        !!end do
-        !call normal_01_cdf((logzvals(1)-m_z)/s_z, cdfstat(1))
-        !do i = 2, nz
-        !    call normal_01_cdf((logzvals(i)-m_z)/s_z, cdfstat(i))
+        !s_z = s_e/sqrt(1d0-rho**2d0)
+        !z_norm_cutoff = x_norm_cutoff*s_z        
+        
+        !call tauchen(s_e, rho, nz, m, logzvals, prob, pstat)
+        s_e_row = s_e/sqrt(1d0-rho**2d0)
+        !!call rouwenhorst(rho, s_e_row, prob_row, logzvals_row, pstat_row)
+        
+        ! Note: rouwenhorst assumes y(t) = rho y(t-1)+ sigma sqrt(1-rho^2) e(t),   e(t)~N(0,1)
+        call rouwenhorst(rho, s_e_row, prob, logzvals, pstat)
+        
+        do i = 1, nz
+            print *, sum(prob(i,:))
+        end do
+        atmp = [pareto_cutoff]
+        call vdcdfnorminv(ntmp, atmp, ytmp)
+        x_norm_cutoff = ytmp(1)
+        !s_z = s_e/sqrt(1d0-rho**2d0)
+        logz_norm_cutoff = x_norm_cutoff*s_z !+ m_z         
+        
+        
+        !do i = 1, nz
+        !    print *, sum(prob_row(i,:))
         !end do
+        call normal_01_cdf((logzvals(1)-m_z)/s_z, cdfstat(1))
+        do i = 2, nz
+            call normal_01_cdf((logzvals(i)-m_z)/s_z, cdfstat(i))
+        end do
+        
+        p0(1,:) = 1d0/dble(nz) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
+        
+        !dist = 1d0
+        !do i = 1, 500
+        !    p1 = matmul(p0, prob)
+        !    dist = sum( (p1 - p0)**2d0 )
+        !    p0 = p1
+        !    if (dist < 1d-12) exit
+        !end do             
+        !pstat = p0(1,:)
+        !do i = 1, nz
+        !    cdfstat_test(i) = sum(pstat(1:i))
+        !    print *, i, cdfstat(i), cdfstat_test(i)
+        !end do
+        
+        !alpha = 1.9d0
+        
+        npareto = 0
+        zvals = exp(logzvals)
+        !do i = 1, nz
+        !    if (cdfstat(i) < pareto_cutoff) then
+        !    !if (logzvals(i) < z_norm_cutoff) then
+        !        zvals(i) = exp(logzvals(i))
+        !    else
+        !        zvals(i) = inv_pareto( (cdfstat(i)-pareto_cutoff)/(1.0d0-pareto_cutoff), exp(logz_norm_cutoff), alpha)
+        !        npareto = npareto + 1
+        !    end if
+        !    !zvals_tmp(i) = exp(logzvals(i))
+        !end do 
         !
-        !p0(1,:) = 1d0/dble(nz) ![1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns), 1d0/dble(ns)]
-        !
-        !!dist = 1d0
-        !!do i = 1, 500
-        !!    p1 = matmul(p0, prob)
-        !!    dist = sum( (p1 - p0)**2d0 )
-        !!    p0 = p1
-        !!    if (dist < 1d-12) exit
-        !!end do             
-        !!pstat = p0(1,:)
-        !!do i = 1, nz
-        !!    cdfstat_test(i) = sum(pstat(1:i))
-        !!    print *, i, cdfstat(i), cdfstat_test(i)
-        !!end do
-        !
-        !!alpha = 1.9d0
-        !
-        !npareto = 0
-        !zvals = exp(logzvals)
-        !!do i = 1, nz
-        !!    if (cdfstat(i) < pareto_cutoff) then
-        !!    !if (logzvals(i) < z_norm_cutoff) then
-        !!        zvals(i) = exp(logzvals(i))
-        !!    else
-        !!        zvals(i) = inv_pareto( (cdfstat(i)-pareto_cutoff)/(1.0d0-pareto_cutoff), exp(logz_norm_cutoff), alpha)
-        !!        npareto = npareto + 1
-        !!    end if
-        !!    !zvals_tmp(i) = exp(logzvals(i))
-        !!end do 
-        !!
-        !print *, npareto, ' values transformed'
+        print *, npareto, ' values transformed'
     
-    !end subroutine discretize_w_pareto
+    end subroutine discretize_w_pareto
     
     !subroutine read_mc(zvals, prob)
     !    use PARAMS, only: nz

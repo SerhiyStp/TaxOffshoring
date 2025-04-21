@@ -10,6 +10,7 @@ contains
     subroutine resid(x1,x2,x3,x4,fv1,fv2,fv3,fv4)
         use params
         use Taxes
+        use Het_returns, only: rF, rR, sig_kappa, rbar
         use Mod_Household
         use Mod_Distribution
         use int_tictoc
@@ -310,130 +311,5 @@ contains
         !newton_res(2) = AAgg/((1.0+nn)*Y)
         !newton_res(3) = hours
     end subroutine newton    
-
-    subroutine klp(x, F, nx, m, sim_moms_2save)
-        use params
-        use moments
-        implicit none
-        integer, intent(in) :: nx
-        integer, intent(in) :: m
-        real(8), intent(in) :: x(nx)
-        real(8), intent(out) :: F(m)
-        real(8), optional, intent(out) :: sim_moms_2save(6) ! Optional output
-        !real(8), optional, intent(out) :: pi_save(8, 8) ! Optional output
-        !real(8), optional, intent(inout):: eta_save(:) ! Optional output
-        real(8) :: guesr,guesN,guesB,guesS, guesrb, guestheta0
-        real(8) :: guesGovcons
-        real(8) :: pi_small(3,3)
-        real(8) :: p_in, p_out, p_ll, p_hh, p_lh, p_hl
-        integer :: i
-        !real(8) :: p0(1,ns)
-        real(8) :: dist
-        integer :: i_closest
-        real(8) :: tmp
-        
-        !psi_vals = [0.1d0, 0.5d0, 1.5d0] 
-        !bbeta = 0.989d0!0.959d0
-        !chi = 17.4d0
-        
-        !open(11, file='equilibrium_tmp.txt')
-        !read(11, '(f20.8)') guesr
-        !read(11, '(f20.8)') guesN
-        !read(11, '(f20.8)') guesGovcons
-        !read(11, '(f20.8)') guesB
-        !read(11, '(f20.8)') guesS
-        !close(11) 
-        
-        psi_prob = [1d0/3d0, 1d0/3d0, 1d0/3d0] !1d0 !
-        
-        guesr = 0.04d0
-        guesrb = 0d0
-        guestheta0 = 0.940d0
-        guesB = 0d0
-        guesS = 0d0
-        call newton(resid,guesr,guesrb,guestheta0,guesB)
-        
-        ![wealth_obs_top_01_001, wealth_obs_top_001, gini_wealth_obs, inc_top_01_001, inc_top_001, gini_inc, wealth_obs_top_001]
-        ! wealth top1, top01, top001; income top1, top01, top001 
-        if (present(sim_moms_2save)) then
-            sim_moms_2save = [sim_moms_klp(1:2), sim_moms(2), sim_moms_klp(4:5), sim_moms(5)]
-        end if
-        
-        F(1:6) = (klp_data_moms - sim_moms_klp)/max(klp_data_moms,0.001d0)
-        F(7) = (wealth_p_99_99_p_100 - sim_moms(2))/wealth_p_99_99_p_100
-        F(8) = (inc_p_99_99_p_100 - sim_moms(5))/inc_p_99_9_p_99_99
-        !mom_dist = sum( ((klp_data_moms - sim_moms_klp)/max(klp_data_moms,0.001d0))**2.0d0 ) + &
-        !            ((wealth_p_99_99_p_100 - sim_moms(2))/wealth_p_99_99_p_100)**2.0d0 + &
-        !            ((inc_p_99_99_p_100 - sim_moms(5))/inc_p_99_9_p_99_99)**2.0d0        
-    end subroutine klp
-    
-    
-    !subroutine offshoring_test()
-    !    use params
-    !    integer, parameter :: nparam = 6
-    !    integer, parameter :: nx = nparam
-    !    integer, parameter :: nm = 8
-    !    real(8) :: x0(nx)    
-    !    real(8) :: fmom(nm)
-    !    real(8), dimension(6) :: sim_moms_2save
-    !    character(len=50) :: filename
-    !    integer :: i, j_value, unit
-    !
-    !    x0 = [0.0004d0, 0.0042d0, 0.9690d0, 0.9424d0, 137.36d0, 1349.46d0]
-    !    call initialize()
-    !    call klp(x0, fmom, nx, nm, sim_moms_2save)  
-    !
-    !    ! Get the filename from the user
-    !    print*, "Enter the filename for saving the CSV file:"
-    !    read*, filename
-    !
-    !    ! Open the file for writing
-    !    open(newunit=unit, file=trim(filename), status='replace')
-    !
-    !    ! Write column headers
-    !    write(unit, '(A)') 'wealthtop1,top01,top001,incometop1,top01,top001'
-    !
-    !    ! Write data to CSV file
-    !    write(unit, '(6(F12.6, ", "))') (sim_moms_2save(i)*100, i=1,6)
-    !    write(unit, '(8(F12.6, ", "))') (pini(i), i=1,8)
-    !    write(unit, '(8(F12.6, ", "))') (DistXW(i)*100, i=1,8)
-    !    write(unit, '(8(F12.6, ", "))') (DistX(i)*100, i=1,8)
-    !    write(unit, '(8(F12.6, ", "))') (eta(i), i=1,8)
-    !    do j_value = 1, 8
-    !        write(unit, '(8(F12.6, ", "))') (pi(j_value, i), i = 1, 8)
-    !    end do
-    !    write(unit, '(A)') 'r,K2Y,hours'
-    !    write(unit, '(6(F12.6, ", "))') (newton_res(i), i=1,3)
-    !    write(unit, '(A)') 'offshoring costs'
-    !    write(unit, '(6(F12.6, ", "))') (psi_vals(i), i=1,3)
-    !    write(unit, '(A)') ',P0-90,P90-99,P99-99.9,P99.9-99.99,P99.99-100, GINI'
-    !    write(unit, '(A, 5(F12.6, ", "))') 'offshoring,', (share_off_dist(i), i=1,5)
-    !    write(unit, '(A, 6(F12.6, ", "))') 'Income,', (income_dist(i), i=1,6)
-    !    write(unit, '(A, 6(F12.6, ", "))') 'Wealth obs,', (wealth_obs_dist(i), i=1,6)
-    !    write(unit, '(A, 6(F12.6, ", "))') 'Wealth tot,', (wealth_tot_dist(i), i=1,6)
-    !    write(unit, '(A, 6(F12.6, ", "))') 'Labor Income,', (lab_income_dist(i), i=1,6)
-    !    ! Close the file
-    !    close(unit)
-    !  
-    !    !! Prompt user for filename
-    !    !write(*, '(A)', advance='no') 'Enter the filename for saving the CSV file: '
-    !    !read(*, '(A)') filename
-    !    !
-    !    !! Open file for writing
-    !    !open(newunit=unit, file=trim(filename), status='replace', action='write')
-    !    !
-    !    !! Write column headers
-    !    !write(unit, '(A,6(A,F12.6,", "))') 'sim_moms_2save:', &
-    !    !'wealthtop1', 'top01', 'top001', 'incometop1', 'top01', 'top001'
-    !    !
-    !    !! Write data to CSV file
-    !    !write(unit, '(6(F12.6, ", "))') (sim_moms_2save(i), i=1,6)
-    !    !
-    !    !! Close the file
-    !    !close(unit)
-    !    !
-    !    !write(*, '(A)', advance='yes') 'CSV file has been saved successfully.'
-    !    
-    !end subroutine offshoring_test    
     
 end module CK_routines

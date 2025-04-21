@@ -1,5 +1,6 @@
 module Mod_Household
     use PARAMS
+    use Het_returns, only: nkappa, ntheta
 
     implicit none
     
@@ -49,6 +50,7 @@ contains
     subroutine SolveHH(save_res)
         use params
         use Taxes
+        use Het_returns
         use MyLinInterp 
         !use zbren_int
         use NEQNF_INT

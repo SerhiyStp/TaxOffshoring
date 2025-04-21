@@ -1,8 +1,11 @@
 subroutine static_focs(x, f, n)
     use Mod_Household, only: lambda_mod, w_mod, theta_mod, kappa_mod, c_mod, ap_mod, psi_mod
-    use PARAMS, only: rfunc, sig2, chi, TrB, frac_ofsh
+    use PARAMS, only: sig2, chi, TrB, frac_ofsh
     use Taxes
+    use Het_returns
+    
     implicit none
+    
     integer :: n
     real(8) :: x(n), f(n)
     real(8) :: a, h
@@ -29,8 +32,9 @@ end subroutine static_focs
     
 subroutine static_focs_nofsh(x, f, n)
     use Mod_Household, only: lambda_mod, w_mod, theta_mod, kappa_mod, c_mod, ap_mod, psi_mod
-    use PARAMS, only: rfunc, sig2, chi, TrB, frac_ofsh
+    use PARAMS, only: sig2, chi, TrB, frac_ofsh
     use Taxes
+    use Het_returns, only: rfunc
     
     implicit none
     
@@ -54,9 +58,9 @@ end subroutine static_focs_nofsh
     
 subroutine static_focs_ofsh(x, f, n)
     use Mod_Household, only: lambda_mod, w_mod, theta_mod, kappa_mod, c_mod, ap_mod, psi_mod
-    use PARAMS, only: rfunc, sig2, chi, TrB, frac_ofsh
-    
+    use PARAMS, only: sig2, chi, TrB, frac_ofsh
     use Taxes
+    use Het_returns, only: rfunc
     
     implicit none
     
